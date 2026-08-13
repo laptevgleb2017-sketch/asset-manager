@@ -117,7 +117,7 @@ class AssetManager:
 
         # Панель поиска и фильтрации
         filter_panel = tk.Frame(main_container, bg='#ffffff', relief=tk.RAISED, bd=1)
-        filter_panel.pack(fill=tk.X, pady=(0, 20), padx=2, pady=2)
+        filter_panel.pack(fill=tk.X, pady=(0, 20), padx=2)
 
         inner_filter = tk.Frame(filter_panel, bg='#ffffff')
         inner_filter.pack(fill=tk.X, padx=10, pady=10)
