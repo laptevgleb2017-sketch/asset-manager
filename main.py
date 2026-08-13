@@ -10,11 +10,14 @@ class AssetManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Учёт имущества")
-        self.root.geometry("1400x750")  # Увеличил ширину для новых столбцов
+        self.root.geometry("1400x750")
         self.root.configure(bg='#f0f0f0')
 
-        # Путь к Excel файлу
-        self.excel_path = "assets.xlsx"
+        # Папка для хранения данных (доступна без прав администратора)
+        data_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'AssetManager')
+        os.makedirs(data_dir, exist_ok=True)
+        self.excel_path = os.path.join(data_dir, 'assets.xlsx')
+
         self.assets = []
         self.filtered_assets = []
 
@@ -47,13 +50,22 @@ class AssetManager:
                        fieldbackground='white',
                        foreground='#333333',
                        rowheight=35,
-                       font=('Segoe UI', 10))
+                       font=('Segoe UI', 10),
+                       borderwidth=1,
+                       relief='solid',
+                       bordercolor='#CCCCCC',
+                       lightcolor='#CCCCCC',
+                       darkcolor='#CCCCCC')
 
         style.configure('Treeview.Heading',
                        background='#2196F3',
                        foreground='white',
                        font=('Segoe UI', 10, 'bold'),
-                       relief='flat')
+                       relief='solid',
+                       borderwidth=1,
+                       bordercolor='#CCCCCC',
+                       lightcolor='#CCCCCC',
+                       darkcolor='#CCCCCC')
 
         style.map('Treeview',
                  background=[('selected', '#2196F3')],
@@ -75,10 +87,19 @@ class AssetManager:
         top_panel = tk.Frame(main_container, bg='#f0f0f0')
         top_panel.pack(fill=tk.X, pady=(0, 20))
 
-        title_label = tk.Label(top_panel, text="📦 Учёт имущества",
+        # Заголовок и подпись
+        title_frame = tk.Frame(top_panel, bg='#f0f0f0')
+        title_frame.pack(side=tk.LEFT)
+
+        title_label = tk.Label(title_frame, text="📦 Учёт имущества",
                               font=('Segoe UI', 24, 'bold'),
                               bg='#f0f0f0', fg='#333333')
         title_label.pack(side=tk.LEFT)
+
+        subtitle_label = tk.Label(title_frame, text="by Ольгерд",
+                                 font=('Segoe UI', 20),  # на 4 кегля меньше
+                                 bg='#f0f0f0', fg='#666666')
+        subtitle_label.pack(side=tk.LEFT, padx=(8, 0))
 
         button_frame = tk.Frame(top_panel, bg='#f0f0f0')
         button_frame.pack(side=tk.RIGHT)
@@ -132,7 +153,6 @@ class AssetManager:
                                font=('Segoe UI', 10), width=30)
         search_entry.pack(side=tk.LEFT, padx=(0, 20))
 
-        # Фильтр по дислокации (бывшая категория)
         tk.Label(inner_filter, text="Дислокация:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
@@ -143,7 +163,6 @@ class AssetManager:
         self.dislocation_combo.pack(side=tk.LEFT, padx=(0, 20))
         self.dislocation_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по статусу
         tk.Label(inner_filter, text="Статус:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
@@ -155,10 +174,9 @@ class AssetManager:
         status_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
         # Таблица
-        table_frame = tk.Frame(main_container, bg='#ffffff', relief=tk.RAISED, bd=1)
+        table_frame = tk.Frame(main_container, bg='#ffffff', relief=tk.SOLID, bd=2)
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Определяем столбцы таблицы (11 колонок)
         columns = {
             'inventory': ('Инв. номер', 100),
             'name': ('Наименование', 200),
@@ -180,7 +198,6 @@ class AssetManager:
             self.tree.heading(col, text=text)
             self.tree.column(col, width=width, anchor='center')
 
-        # Настройка прокрутки
         vscroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         hscroll = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
 
@@ -225,7 +242,6 @@ class AssetManager:
         ws = wb.active
         ws.title = "Активы"
 
-        # Новый порядок заголовков
         headers = [
             'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
             'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
@@ -239,7 +255,6 @@ class AssetManager:
             cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.border = Border(bottom=Side(style='thin'))
 
-        # Ширина колонок
         widths = [15, 25, 10, 12, 20, 20, 20, 12, 12, 20, 25]
         for col, width in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(col)].width = width
@@ -254,7 +269,7 @@ class AssetManager:
 
             self.assets = []
             for row in ws.iter_rows(min_row=2, values_only=True):
-                if row[0]:  # Если есть инвентарный номер
+                if row[0]:
                     asset = {
                         'inventory': row[0],
                         'name': row[1] or '',
@@ -282,7 +297,6 @@ class AssetManager:
             ws = wb.active
             ws.title = "Активы"
 
-            # Заголовки
             headers = [
                 'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
                 'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
@@ -295,7 +309,6 @@ class AssetManager:
                 cell.fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
-            # Данные
             for row_idx, asset in enumerate(self.assets, 2):
                 ws.cell(row=row_idx, column=1, value=asset['inventory'])
                 ws.cell(row=row_idx, column=2, value=asset['name'])
@@ -309,13 +322,11 @@ class AssetManager:
                 ws.cell(row=row_idx, column=10, value=asset['act'])
                 ws.cell(row=row_idx, column=11, value=asset['note'])
 
-                # Чередование цветов строк
                 if row_idx % 2 == 0:
                     for col in range(1, 12):
                         ws.cell(row=row_idx, column=col).fill = PatternFill(
                             start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
 
-            # Ширина колонок
             widths = [15, 25, 10, 12, 20, 20, 20, 12, 12, 20, 25]
             for col, width in enumerate(widths, 1):
                 ws.column_dimensions[get_column_letter(col)].width = width
@@ -341,7 +352,7 @@ class AssetManager:
 
             self.assets.append(dialog.result)
             self.save_to_excel()
-            self.update_filter_values()  # Обновляем список дислокаций в фильтре
+            self.update_filter_values()
             self.filter_assets()
             messagebox.showinfo("Успех", "Актив успешно добавлен")
 
@@ -423,7 +434,6 @@ class AssetManager:
         current = self.dislocation_var.get()
         values = ["Все"] + self.get_dislocations()
         self.dislocation_combo['values'] = values
-        # Если текущее значение больше не существует, сбрасываем на "Все"
         if current not in values:
             self.dislocation_var.set("Все")
 
@@ -551,7 +561,6 @@ class AssetDialog:
         form_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         form_frame.pack(fill=tk.BOTH, expand=True, padx=30)
 
-        # Определяем поля (label, key, required)
         fields = [
             ('Инвентарный номер:', 'inventory', False),
             ('Наименование:', 'name', True),
@@ -573,14 +582,12 @@ class AssetDialog:
                           bg='#f0f0f0', font=('Segoe UI', 10))
             lbl.grid(row=i, column=0, sticky='w', pady=5)
 
-            # Для статуса используем Combobox, для остальных Entry
             if key == 'status':
                 var = tk.StringVar(value=self.asset.get(key, 'Активен'))
                 entry = ttk.Combobox(form_frame, textvariable=var,
                                     values=['Активен', 'В ремонте', 'Списан'],
                                     state='readonly', width=25)
             else:
-                # Значение по умолчанию
                 default = self.asset.get(key, '')
                 if key == 'quantity':
                     default = self.asset.get(key, 1)
@@ -601,7 +608,6 @@ class AssetDialog:
                                     bg='#f0f0f0', font=('Segoe UI', 10, 'bold'))
                 req_label.grid(row=i, column=2, sticky='w')
 
-        # Кнопки
         button_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         button_frame.pack(pady=20)
 
@@ -623,7 +629,6 @@ class AssetDialog:
 
     def save(self):
         """Сохранение данных"""
-        # Проверка обязательных полей
         required_fields = ['name', 'dislocation', 'location', 'responsible']
         for field in required_fields:
             if not self.entries[field].get().strip():
@@ -631,7 +636,6 @@ class AssetDialog:
                                       f"Поле '{field}' обязательно для заполнения")
                 return
 
-        # Формирование результата
         try:
             quantity = int(self.entries['quantity'].get().strip()) if self.entries['quantity'].get().strip() else 1
             cost = float(self.entries['cost'].get().replace(' ', '').replace(',', '.')) if self.entries['cost'].get().strip() else 0
