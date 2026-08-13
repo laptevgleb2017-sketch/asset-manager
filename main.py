@@ -10,7 +10,7 @@ class AssetManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Учёт имущества")
-        self.root.geometry("1200x700")
+        self.root.geometry("1400x750")  # Увеличил ширину для новых столбцов
         self.root.configure(bg='#f0f0f0')
 
         # Путь к Excel файлу
@@ -132,16 +132,18 @@ class AssetManager:
                                font=('Segoe UI', 10), width=30)
         search_entry.pack(side=tk.LEFT, padx=(0, 20))
 
-        tk.Label(inner_filter, text="Категория:",
+        # Фильтр по дислокации (бывшая категория)
+        tk.Label(inner_filter, text="Дислокация:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
-        self.category_var = tk.StringVar(value="Все")
-        categories = ["Все"] + self.get_categories()
-        category_combo = ttk.Combobox(inner_filter, textvariable=self.category_var,
-                                     values=categories, width=15, state='readonly')
-        category_combo.pack(side=tk.LEFT, padx=(0, 20))
-        category_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.dislocation_var = tk.StringVar(value="Все")
+        self.dislocation_combo = ttk.Combobox(inner_filter, textvariable=self.dislocation_var,
+                                              values=["Все"] + self.get_dislocations(),
+                                              width=15, state='readonly')
+        self.dislocation_combo.pack(side=tk.LEFT, padx=(0, 20))
+        self.dislocation_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
+        # Фильтр по статусу
         tk.Label(inner_filter, text="Статус:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
@@ -156,26 +158,29 @@ class AssetManager:
         table_frame = tk.Frame(main_container, bg='#ffffff', relief=tk.RAISED, bd=1)
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.tree = ttk.Treeview(table_frame, columns=(
-            'inventory', 'name', 'category', 'location',
-            'responsible', 'cost', 'status', 'date'
-        ), show='headings', selectmode='extended')
-
+        # Определяем столбцы таблицы (11 колонок)
         columns = {
             'inventory': ('Инв. номер', 100),
             'name': ('Наименование', 200),
-            'category': ('Категория', 120),
+            'quantity': ('Кол-во', 70),
+            'unit': ('Ед. изм.', 80),
+            'dislocation': ('Дислокация', 120),
             'location': ('Расположение', 150),
             'responsible': ('Ответственный', 150),
             'cost': ('Стоимость', 100),
             'status': ('Статус', 100),
-            'date': ('Дата покупки', 100)
+            'act': ('Акт/Накладная', 120),
+            'note': ('Примечание', 200)
         }
+
+        self.tree = ttk.Treeview(table_frame, columns=tuple(columns.keys()),
+                                show='headings', selectmode='extended')
 
         for col, (text, width) in columns.items():
             self.tree.heading(col, text=text)
             self.tree.column(col, width=width, anchor='center')
 
+        # Настройка прокрутки
         vscroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         hscroll = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
 
@@ -215,12 +220,17 @@ class AssetManager:
                 break
 
     def create_excel_file(self):
+        """Создание Excel файла с шаблоном"""
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Активы"
 
-        headers = ['Инв. номер', 'Наименование', 'Категория', 'Расположение',
-                  'Ответственный', 'Стоимость', 'Статус', 'Дата покупки', 'Описание']
+        # Новый порядок заголовков
+        headers = [
+            'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
+            'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
+            'Статус', 'Акт/Накладная', 'Примечание'
+        ]
 
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
@@ -229,30 +239,34 @@ class AssetManager:
             cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.border = Border(bottom=Side(style='thin'))
 
-        widths = [15, 25, 15, 20, 20, 12, 12, 15, 30]
+        # Ширина колонок
+        widths = [15, 25, 10, 12, 20, 20, 20, 12, 12, 20, 25]
         for col, width in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(col)].width = width
 
         wb.save(self.excel_path)
 
     def load_assets(self):
+        """Загрузка данных из Excel"""
         try:
             wb = openpyxl.load_workbook(self.excel_path)
             ws = wb.active
 
             self.assets = []
             for row in ws.iter_rows(min_row=2, values_only=True):
-                if row[0]:
+                if row[0]:  # Если есть инвентарный номер
                     asset = {
                         'inventory': row[0],
                         'name': row[1] or '',
-                        'category': row[2] or '',
-                        'location': row[3] or '',
-                        'responsible': row[4] or '',
-                        'cost': row[5] or 0,
-                        'status': row[6] or 'Активен',
-                        'date': row[7] or '',
-                        'description': row[8] or ''
+                        'quantity': row[2] if isinstance(row[2], (int, float)) else 1,
+                        'unit': row[3] or 'шт.',
+                        'dislocation': row[4] or '',
+                        'location': row[5] or '',
+                        'responsible': row[6] or '',
+                        'cost': row[7] if isinstance(row[7], (int, float)) else 0,
+                        'status': row[8] or 'Активен',
+                        'act': row[9] or '',
+                        'note': row[10] or ''
                     }
                     self.assets.append(asset)
 
@@ -262,13 +276,18 @@ class AssetManager:
             messagebox.showerror("Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
     def save_to_excel(self):
+        """Сохранение данных в Excel"""
         try:
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Активы"
 
-            headers = ['Инв. номер', 'Наименование', 'Категория', 'Расположение',
-                      'Ответственный', 'Стоимость', 'Статус', 'Дата покупки', 'Описание']
+            # Заголовки
+            headers = [
+                'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
+                'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
+                'Статус', 'Акт/Накладная', 'Примечание'
+            ]
 
             for col, header in enumerate(headers, 1):
                 cell = ws.cell(row=1, column=col, value=header)
@@ -276,27 +295,32 @@ class AssetManager:
                 cell.fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
+            # Данные
             for row_idx, asset in enumerate(self.assets, 2):
                 ws.cell(row=row_idx, column=1, value=asset['inventory'])
                 ws.cell(row=row_idx, column=2, value=asset['name'])
-                ws.cell(row=row_idx, column=3, value=asset['category'])
-                ws.cell(row=row_idx, column=4, value=asset['location'])
-                ws.cell(row=row_idx, column=5, value=asset['responsible'])
-                ws.cell(row=row_idx, column=6, value=asset['cost'])
-                ws.cell(row=row_idx, column=7, value=asset['status'])
-                ws.cell(row=row_idx, column=8, value=asset['date'])
-                ws.cell(row=row_idx, column=9, value=asset['description'])
+                ws.cell(row=row_idx, column=3, value=asset['quantity'])
+                ws.cell(row=row_idx, column=4, value=asset['unit'])
+                ws.cell(row=row_idx, column=5, value=asset['dislocation'])
+                ws.cell(row=row_idx, column=6, value=asset['location'])
+                ws.cell(row=row_idx, column=7, value=asset['responsible'])
+                ws.cell(row=row_idx, column=8, value=asset['cost'])
+                ws.cell(row=row_idx, column=9, value=asset['status'])
+                ws.cell(row=row_idx, column=10, value=asset['act'])
+                ws.cell(row=row_idx, column=11, value=asset['note'])
 
+                # Чередование цветов строк
                 if row_idx % 2 == 0:
-                    for col in range(1, 10):
+                    for col in range(1, 12):
                         ws.cell(row=row_idx, column=col).fill = PatternFill(
                             start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
 
-            widths = [15, 25, 15, 20, 20, 12, 12, 15, 30]
+            # Ширина колонок
+            widths = [15, 25, 10, 12, 20, 20, 20, 12, 12, 20, 25]
             for col, width in enumerate(widths, 1):
                 ws.column_dimensions[get_column_letter(col)].width = width
 
-            ws.auto_filter.ref = f"A1:I{len(self.assets) + 1}"
+            ws.auto_filter.ref = f"A1:K{len(self.assets) + 1}"
             ws.freeze_panes = 'A2'
 
             wb.save(self.excel_path)
@@ -307,6 +331,7 @@ class AssetManager:
             return False
 
     def add_asset(self):
+        """Добавление нового актива"""
         dialog = AssetDialog(self.root, "Добавить актив")
         self.root.wait_window(dialog.dialog)
 
@@ -316,10 +341,12 @@ class AssetManager:
 
             self.assets.append(dialog.result)
             self.save_to_excel()
+            self.update_filter_values()  # Обновляем список дислокаций в фильтре
             self.filter_assets()
             messagebox.showinfo("Успех", "Актив успешно добавлен")
 
     def edit_asset(self):
+        """Редактирование выбранного актива"""
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Внимание", "Выберите актив для редактирования")
@@ -341,10 +368,12 @@ class AssetManager:
             if dialog.result:
                 self.assets[asset_index] = dialog.result
                 self.save_to_excel()
+                self.update_filter_values()
                 self.filter_assets()
                 messagebox.showinfo("Успех", "Актив успешно обновлен")
 
     def delete_asset(self):
+        """Удаление выбранных активов"""
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Внимание", "Выберите активы для удаления")
@@ -360,10 +389,12 @@ class AssetManager:
             self.assets = [a for a in self.assets if a['inventory'] not in inventories]
 
             self.save_to_excel()
+            self.update_filter_values()
             self.filter_assets()
             messagebox.showinfo("Успех", "Активы успешно удалены")
 
     def generate_inventory_number(self):
+        """Генерация инвентарного номера"""
         if not self.assets:
             return "INV-0001"
 
@@ -379,26 +410,37 @@ class AssetManager:
 
         return f"INV-{max_num + 1:04d}"
 
-    def get_categories(self):
-        categories = set()
+    def get_dislocations(self):
+        """Получение списка уникальных дислокаций"""
+        dislocations = set()
         for asset in self.assets:
-            if asset['category']:
-                categories.add(asset['category'])
-        return sorted(list(categories))
+            if asset['dislocation']:
+                dislocations.add(asset['dislocation'])
+        return sorted(list(dislocations))
+
+    def update_filter_values(self):
+        """Обновление значений в выпадающем списке фильтра дислокаций"""
+        current = self.dislocation_var.get()
+        values = ["Все"] + self.get_dislocations()
+        self.dislocation_combo['values'] = values
+        # Если текущее значение больше не существует, сбрасываем на "Все"
+        if current not in values:
+            self.dislocation_var.set("Все")
 
     def filter_assets(self):
+        """Фильтрация активов"""
         search_text = self.search_var.get().lower()
-        category = self.category_var.get()
+        dislocation = self.dislocation_var.get()
         status = self.status_var.get()
 
         self.filtered_assets = []
         for asset in self.assets:
             if search_text:
-                searchable = f"{asset['name']} {asset['inventory']} {asset['location']} {asset['responsible']}"
+                searchable = f"{asset['name']} {asset['inventory']} {asset['location']} {asset['responsible']} {asset['dislocation']}"
                 if search_text not in searchable.lower():
                     continue
 
-            if category != "Все" and asset['category'] != category:
+            if dislocation != "Все" and asset['dislocation'] != dislocation:
                 continue
 
             if status != "Все" and asset['status'] != status:
@@ -410,6 +452,7 @@ class AssetManager:
         self.update_stats()
 
     def update_table(self):
+        """Обновление таблицы"""
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -423,18 +466,22 @@ class AssetManager:
             self.tree.insert('', 'end', values=(
                 asset['inventory'],
                 asset['name'],
-                asset['category'],
+                asset['quantity'],
+                asset['unit'],
+                asset['dislocation'],
                 asset['location'],
                 asset['responsible'],
                 asset['cost'],
                 asset['status'],
-                asset['date']
+                asset['act'],
+                asset['note']
             ), tags=tags)
 
         self.tree.tag_configure('written_off', background='#FFEBEE')
         self.tree.tag_configure('in_repair', background='#FFF3E0')
 
     def update_stats(self):
+        """Обновление статистики"""
         total = len(self.assets)
         active = len([a for a in self.assets if a['status'] == 'Активен'])
         in_repair = len([a for a in self.assets if a['status'] == 'В ремонте'])
@@ -447,6 +494,7 @@ class AssetManager:
         )
 
     def export_to_excel(self):
+        """Экспорт в Excel с выбором места сохранения"""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
@@ -462,10 +510,12 @@ class AssetManager:
                 messagebox.showerror("Ошибка", f"Не удалось экспортировать: {str(e)}")
 
     def auto_save(self):
+        """Автосохранение каждые 5 минут"""
         self.save_to_excel()
-        self.root.after(300000, self.auto_save)  # 5 минут
+        self.root.after(300000, self.auto_save)
 
     def on_closing(self):
+        """Действия при закрытии приложения"""
         if messagebox.askyesno("Выход", "Сохранить изменения перед выходом?"):
             if self.save_to_excel():
                 self.root.destroy()
@@ -474,10 +524,12 @@ class AssetManager:
 
 
 class AssetDialog:
+    """Диалоговое окно для добавления/редактирования актива"""
+
     def __init__(self, parent, title, asset=None):
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
-        self.dialog.geometry("500x600")
+        self.dialog.geometry("550x650")
         self.dialog.configure(bg='#f0f0f0')
         self.dialog.resizable(False, False)
 
@@ -490,6 +542,7 @@ class AssetDialog:
         self.dialog.grab_set()
 
     def setup_ui(self):
+        """Создание интерфейса диалога"""
         title_label = tk.Label(self.dialog, text="Информация об активе",
                               font=('Segoe UI', 16, 'bold'),
                               bg='#f0f0f0', fg='#333333')
@@ -498,16 +551,19 @@ class AssetDialog:
         form_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         form_frame.pack(fill=tk.BOTH, expand=True, padx=30)
 
+        # Определяем поля (label, key, required)
         fields = [
             ('Инвентарный номер:', 'inventory', False),
             ('Наименование:', 'name', True),
-            ('Категория:', 'category', True),
+            ('Количество:', 'quantity', False),
+            ('Ед. измерения:', 'unit', False),
+            ('Дислокация:', 'dislocation', True),
             ('Расположение:', 'location', True),
             ('Ответственный:', 'responsible', True),
             ('Стоимость:', 'cost', False),
             ('Статус:', 'status', False),
-            ('Дата покупки:', 'date', False),
-            ('Описание:', 'description', False)
+            ('Акт/Накладная:', 'act', False),
+            ('Примечание:', 'note', False)
         ]
 
         self.entries = {}
@@ -517,17 +573,23 @@ class AssetDialog:
                           bg='#f0f0f0', font=('Segoe UI', 10))
             lbl.grid(row=i, column=0, sticky='w', pady=5)
 
+            # Для статуса используем Combobox, для остальных Entry
             if key == 'status':
                 var = tk.StringVar(value=self.asset.get(key, 'Активен'))
                 entry = ttk.Combobox(form_frame, textvariable=var,
                                     values=['Активен', 'В ремонте', 'Списан'],
                                     state='readonly', width=25)
-            elif key == 'date':
-                var = tk.StringVar(value=self.asset.get(key, datetime.now().strftime('%d.%m.%Y')))
-                entry = tk.Entry(form_frame, textvariable=var, width=27,
-                               font=('Segoe UI', 10))
             else:
-                var = tk.StringVar(value=self.asset.get(key, ''))
+                # Значение по умолчанию
+                default = self.asset.get(key, '')
+                if key == 'quantity':
+                    default = self.asset.get(key, 1)
+                elif key == 'unit':
+                    default = self.asset.get(key, 'шт.')
+                elif key == 'cost':
+                    default = self.asset.get(key, 0)
+
+                var = tk.StringVar(value=default)
                 entry = tk.Entry(form_frame, textvariable=var, width=27,
                                font=('Segoe UI', 10))
 
@@ -539,6 +601,7 @@ class AssetDialog:
                                     bg='#f0f0f0', font=('Segoe UI', 10, 'bold'))
                 req_label.grid(row=i, column=2, sticky='w')
 
+        # Кнопки
         button_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         button_frame.pack(pady=20)
 
@@ -559,42 +622,38 @@ class AssetDialog:
         cancel_btn.pack(side=tk.LEFT, padx=10)
 
     def save(self):
-        if not self.entries['name'].get().strip():
-            messagebox.showwarning("Внимание", "Наименование обязательно для заполнения")
-            return
+        """Сохранение данных"""
+        # Проверка обязательных полей
+        required_fields = ['name', 'dislocation', 'location', 'responsible']
+        for field in required_fields:
+            if not self.entries[field].get().strip():
+                messagebox.showwarning("Внимание",
+                                      f"Поле '{field}' обязательно для заполнения")
+                return
 
-        if not self.entries['category'].get().strip():
-            messagebox.showwarning("Внимание", "Категория обязательна для заполнения")
-            return
-
-        if not self.entries['location'].get().strip():
-            messagebox.showwarning("Внимание", "Расположение обязательно для заполнения")
-            return
-
-        if not self.entries['responsible'].get().strip():
-            messagebox.showwarning("Внимание", "Ответственный обязателен для заполнения")
+        # Формирование результата
+        try:
+            quantity = int(self.entries['quantity'].get().strip()) if self.entries['quantity'].get().strip() else 1
+            cost = float(self.entries['cost'].get().replace(' ', '').replace(',', '.')) if self.entries['cost'].get().strip() else 0
+        except ValueError:
+            messagebox.showerror("Ошибка", "Количество и стоимость должны быть числами")
             return
 
         self.result = {
             'inventory': self.entries['inventory'].get().strip(),
             'name': self.entries['name'].get().strip(),
-            'category': self.entries['category'].get().strip(),
+            'quantity': quantity,
+            'unit': self.entries['unit'].get().strip() or 'шт.',
+            'dislocation': self.entries['dislocation'].get().strip(),
             'location': self.entries['location'].get().strip(),
             'responsible': self.entries['responsible'].get().strip(),
-            'cost': self.parse_cost(self.entries['cost'].get()),
+            'cost': cost,
             'status': self.entries['status'].get(),
-            'date': self.entries['date'].get().strip(),
-            'description': self.entries['description'].get().strip()
+            'act': self.entries['act'].get().strip(),
+            'note': self.entries['note'].get().strip()
         }
 
         self.dialog.destroy()
-
-    def parse_cost(self, value):
-        try:
-            value = value.replace(' ', '').replace(',', '.')
-            return float(value) if value else 0
-        except:
-            return 0
 
 
 def main():
