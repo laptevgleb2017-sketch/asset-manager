@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5   # обновлено с v4 до v5
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5  # остаётся v5, если предупреждение не уйдёт, замените на @v6 при наличии
       with:
         python-version: '3.10'
 
