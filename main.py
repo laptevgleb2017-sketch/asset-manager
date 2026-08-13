@@ -13,35 +13,25 @@ class AssetManager:
         self.root.geometry("1400x750")
         self.root.configure(bg='#f0f0f0')
 
-        # Папка для хранения данных (доступна без прав администратора)
-        data_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'AssetManager')
+        # Папка для хранения данных на рабочем столе
+        desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
+        data_dir = os.path.join(desktop, 'Учёт имущества')
         os.makedirs(data_dir, exist_ok=True)
         self.excel_path = os.path.join(data_dir, 'assets.xlsx')
 
         self.assets = []
         self.filtered_assets = []
 
-        # Создание Excel файла если не существует
         if not os.path.exists(self.excel_path):
             self.create_excel_file()
 
-        # Загрузка данных
         self.load_assets()
-
-        # Настройка стилей
         self.setup_styles()
-
-        # Создание интерфейса
         self.setup_ui()
-
-        # Привязка горячих клавиш
         self.setup_shortcuts()
-
-        # Автосохранение
         self.auto_save()
 
     def setup_styles(self):
-        """Настройка стилей интерфейса"""
         style = ttk.Style()
         style.theme_use('clam')
 
@@ -79,62 +69,53 @@ class AssetManager:
                        padding=10)
 
     def setup_ui(self):
-        """Создание пользовательского интерфейса"""
         main_container = tk.Frame(self.root, bg='#f0f0f0')
         main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # Верхняя панель
         top_panel = tk.Frame(main_container, bg='#f0f0f0')
         top_panel.pack(fill=tk.X, pady=(0, 20))
 
-        # Заголовок и подпись
         title_frame = tk.Frame(top_panel, bg='#f0f0f0')
         title_frame.pack(side=tk.LEFT)
 
-        title_label = tk.Label(title_frame, text="📦 Учёт имущества",
-                              font=('Segoe UI', 24, 'bold'),
-                              bg='#f0f0f0', fg='#333333')
-        title_label.pack(side=tk.LEFT)
+        tk.Label(title_frame, text="📦 Учёт имущества",
+                font=('Segoe UI', 24, 'bold'),
+                bg='#f0f0f0', fg='#333333').pack(side=tk.LEFT)
 
-        subtitle_label = tk.Label(title_frame, text="by Ольгерд",
-                                 font=('Segoe UI', 20),  # на 4 кегля меньше
-                                 bg='#f0f0f0', fg='#666666')
-        subtitle_label.pack(side=tk.LEFT, padx=(8, 0))
+        tk.Label(title_frame, text="by Ольгерд",
+                font=('Segoe UI', 20),
+                bg='#f0f0f0', fg='#666666').pack(side=tk.LEFT, padx=(8, 0))
 
         button_frame = tk.Frame(top_panel, bg='#f0f0f0')
         button_frame.pack(side=tk.RIGHT)
 
-        add_btn = tk.Button(button_frame, text="➕ Добавить",
-                           command=self.add_asset,
-                           bg='#4CAF50', fg='white',
-                           font=('Segoe UI', 10, 'bold'),
-                           relief=tk.FLAT, cursor='hand2',
-                           padx=20, pady=10)
-        add_btn.pack(side=tk.LEFT, padx=(0, 10))
+        tk.Button(button_frame, text="➕ Добавить",
+                 command=self.add_asset,
+                 bg='#4CAF50', fg='white',
+                 font=('Segoe UI', 10, 'bold'),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=(0, 10))
 
-        edit_btn = tk.Button(button_frame, text="✏️ Редактировать",
-                            command=self.edit_asset,
-                            bg='#FF9800', fg='white',
-                            font=('Segoe UI', 10),
-                            relief=tk.FLAT, cursor='hand2',
-                            padx=20, pady=10)
-        edit_btn.pack(side=tk.LEFT, padx=(0, 10))
+        tk.Button(button_frame, text="✏️ Редактировать",
+                 command=self.edit_asset,
+                 bg='#FF9800', fg='white',
+                 font=('Segoe UI', 10),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=(0, 10))
 
-        delete_btn = tk.Button(button_frame, text="🗑️ Удалить",
-                              command=self.delete_asset,
-                              bg='#F44336', fg='white',
-                              font=('Segoe UI', 10),
-                              relief=tk.FLAT, cursor='hand2',
-                              padx=20, pady=10)
-        delete_btn.pack(side=tk.LEFT, padx=(0, 10))
+        tk.Button(button_frame, text="🗑️ Удалить",
+                 command=self.delete_asset,
+                 bg='#F44336', fg='white',
+                 font=('Segoe UI', 10),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=(0, 10))
 
-        export_btn = tk.Button(button_frame, text="📊 Экспорт",
-                              command=self.export_to_excel,
-                              bg='#2196F3', fg='white',
-                              font=('Segoe UI', 10),
-                              relief=tk.FLAT, cursor='hand2',
-                              padx=20, pady=10)
-        export_btn.pack(side=tk.LEFT)
+        tk.Button(button_frame, text="📊 Экспорт",
+                 command=self.export_to_excel,
+                 bg='#2196F3', fg='white',
+                 font=('Segoe UI', 10),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT)
 
         # Панель поиска и фильтрации
         filter_panel = tk.Frame(main_container, bg='#ffffff', relief=tk.RAISED, bd=1)
@@ -148,28 +129,26 @@ class AssetManager:
 
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.filter_assets())
+        tk.Entry(inner_filter, textvariable=self.search_var,
+                font=('Segoe UI', 10), width=30).pack(side=tk.LEFT, padx=(0, 20))
 
-        search_entry = tk.Entry(inner_filter, textvariable=self.search_var,
-                               font=('Segoe UI', 10), width=30)
-        search_entry.pack(side=tk.LEFT, padx=(0, 20))
-
-        tk.Label(inner_filter, text="Дислокация:",
+        tk.Label(inner_filter, text="Направление:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
-        self.dislocation_var = tk.StringVar(value="Все")
-        self.dislocation_combo = ttk.Combobox(inner_filter, textvariable=self.dislocation_var,
-                                              values=["Все"] + self.get_dislocations(),
-                                              width=15, state='readonly')
-        self.dislocation_combo.pack(side=tk.LEFT, padx=(0, 20))
-        self.dislocation_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.direction_var = tk.StringVar(value="Все")
+        self.direction_combo = ttk.Combobox(inner_filter, textvariable=self.direction_var,
+                                           values=["Все"] + self.get_directions(),
+                                           width=15, state='readonly')
+        self.direction_combo.pack(side=tk.LEFT, padx=(0, 20))
+        self.direction_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
         tk.Label(inner_filter, text="Статус:",
                 bg='#ffffff', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=(0, 5))
 
         self.status_var = tk.StringVar(value="Все")
-        statuses = ["Все", "Активен", "В ремонте", "Списан"]
         status_combo = ttk.Combobox(inner_filter, textvariable=self.status_var,
-                                   values=statuses, width=15, state='readonly')
+                                   values=["Все", "Активен", "В ремонте", "Списан"],
+                                   width=15, state='readonly')
         status_combo.pack(side=tk.LEFT)
         status_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
@@ -182,7 +161,7 @@ class AssetManager:
             'name': ('Наименование', 200),
             'quantity': ('Кол-во', 70),
             'unit': ('Ед. изм.', 80),
-            'dislocation': ('Дислокация', 120),
+            'direction': ('Направление', 120),
             'location': ('Расположение', 150),
             'responsible': ('Ответственный', 150),
             'cost': ('Стоимость', 100),
@@ -200,22 +179,18 @@ class AssetManager:
 
         vscroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         hscroll = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
-
         self.tree.configure(yscrollcommand=vscroll.set, xscrollcommand=hscroll.set)
 
         self.tree.grid(row=0, column=0, sticky='nsew')
         vscroll.grid(row=0, column=1, sticky='ns')
         hscroll.grid(row=1, column=0, sticky='ew')
-
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
         self.tree.bind('<Double-Button-1>', lambda e: self.edit_asset())
 
-        # Статистика
         stats_panel = tk.Frame(main_container, bg='#f0f0f0')
         stats_panel.pack(fill=tk.X, pady=(10, 0))
-
         self.stats_label = tk.Label(stats_panel, text="",
                                    bg='#f0f0f0', font=('Segoe UI', 9))
         self.stats_label.pack(side=tk.LEFT)
@@ -237,14 +212,13 @@ class AssetManager:
                 break
 
     def create_excel_file(self):
-        """Создание Excel файла с шаблоном"""
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Активы"
 
         headers = [
             'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
-            'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
+            'Направление', 'Расположение', 'Ответственный', 'Стоимость',
             'Статус', 'Акт/Накладная', 'Примечание'
         ]
 
@@ -262,11 +236,9 @@ class AssetManager:
         wb.save(self.excel_path)
 
     def load_assets(self):
-        """Загрузка данных из Excel"""
         try:
             wb = openpyxl.load_workbook(self.excel_path)
             ws = wb.active
-
             self.assets = []
             for row in ws.iter_rows(min_row=2, values_only=True):
                 if row[0]:
@@ -275,7 +247,7 @@ class AssetManager:
                         'name': row[1] or '',
                         'quantity': row[2] if isinstance(row[2], (int, float)) else 1,
                         'unit': row[3] or 'шт.',
-                        'dislocation': row[4] or '',
+                        'direction': row[4] or '',
                         'location': row[5] or '',
                         'responsible': row[6] or '',
                         'cost': row[7] if isinstance(row[7], (int, float)) else 0,
@@ -284,14 +256,11 @@ class AssetManager:
                         'note': row[10] or ''
                     }
                     self.assets.append(asset)
-
             self.filtered_assets = self.assets.copy()
-
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
     def save_to_excel(self):
-        """Сохранение данных в Excel"""
         try:
             wb = openpyxl.Workbook()
             ws = wb.active
@@ -299,7 +268,7 @@ class AssetManager:
 
             headers = [
                 'Инв. номер', 'Наименование', 'Количество', 'Ед. измерения',
-                'Дислокация', 'Расположение', 'Ответственный', 'Стоимость',
+                'Направление', 'Расположение', 'Ответственный', 'Стоимость',
                 'Статус', 'Акт/Накладная', 'Примечание'
             ]
 
@@ -314,7 +283,7 @@ class AssetManager:
                 ws.cell(row=row_idx, column=2, value=asset['name'])
                 ws.cell(row=row_idx, column=3, value=asset['quantity'])
                 ws.cell(row=row_idx, column=4, value=asset['unit'])
-                ws.cell(row=row_idx, column=5, value=asset['dislocation'])
+                ws.cell(row=row_idx, column=5, value=asset['direction'])
                 ws.cell(row=row_idx, column=6, value=asset['location'])
                 ws.cell(row=row_idx, column=7, value=asset['responsible'])
                 ws.cell(row=row_idx, column=8, value=asset['cost'])
@@ -336,20 +305,16 @@ class AssetManager:
 
             wb.save(self.excel_path)
             return True
-
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить данные: {str(e)}")
             return False
 
     def add_asset(self):
-        """Добавление нового актива"""
         dialog = AssetDialog(self.root, "Добавить актив")
         self.root.wait_window(dialog.dialog)
-
         if dialog.result:
             if not dialog.result.get('inventory'):
                 dialog.result['inventory'] = self.generate_inventory_number()
-
             self.assets.append(dialog.result)
             self.save_to_excel()
             self.update_filter_values()
@@ -357,7 +322,6 @@ class AssetManager:
             messagebox.showinfo("Успех", "Актив успешно добавлен")
 
     def edit_asset(self):
-        """Редактирование выбранного актива"""
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Внимание", "Выберите актив для редактирования")
@@ -372,19 +336,21 @@ class AssetManager:
                 asset_index = i
                 break
 
-        if asset_index is not None:
-            dialog = AssetDialog(self.root, "Редактировать актив", self.assets[asset_index])
-            self.root.wait_window(dialog.dialog)
+        if asset_index is None:
+            messagebox.showerror("Ошибка", "Актив не найден в базе данных")
+            return
 
-            if dialog.result:
-                self.assets[asset_index] = dialog.result
-                self.save_to_excel()
-                self.update_filter_values()
-                self.filter_assets()
-                messagebox.showinfo("Успех", "Актив успешно обновлен")
+        dialog = AssetDialog(self.root, "Редактировать актив", self.assets[asset_index])
+        self.root.wait_window(dialog.dialog)
+
+        if dialog.result:
+            self.assets[asset_index] = dialog.result
+            self.save_to_excel()
+            self.update_filter_values()
+            self.filter_assets()
+            messagebox.showinfo("Успех", "Актив успешно обновлён")
 
     def delete_asset(self):
-        """Удаление выбранных активов"""
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Внимание", "Выберите активы для удаления")
@@ -398,17 +364,14 @@ class AssetManager:
                 inventories.append(values[0])
 
             self.assets = [a for a in self.assets if a['inventory'] not in inventories]
-
             self.save_to_excel()
             self.update_filter_values()
             self.filter_assets()
             messagebox.showinfo("Успех", "Активы успешно удалены")
 
     def generate_inventory_number(self):
-        """Генерация инвентарного номера"""
         if not self.assets:
             return "INV-0001"
-
         max_num = 0
         for asset in self.assets:
             inv = asset['inventory']
@@ -418,39 +381,35 @@ class AssetManager:
                     max_num = max(max_num, num)
                 except:
                     pass
-
         return f"INV-{max_num + 1:04d}"
 
-    def get_dislocations(self):
-        """Получение списка уникальных дислокаций"""
-        dislocations = set()
+    def get_directions(self):
+        directions = set()
         for asset in self.assets:
-            if asset['dislocation']:
-                dislocations.add(asset['dislocation'])
-        return sorted(list(dislocations))
+            if asset['direction']:
+                directions.add(asset['direction'])
+        return sorted(list(directions))
 
     def update_filter_values(self):
-        """Обновление значений в выпадающем списке фильтра дислокаций"""
-        current = self.dislocation_var.get()
-        values = ["Все"] + self.get_dislocations()
-        self.dislocation_combo['values'] = values
+        current = self.direction_var.get()
+        values = ["Все"] + self.get_directions()
+        self.direction_combo['values'] = values
         if current not in values:
-            self.dislocation_var.set("Все")
+            self.direction_var.set("Все")
 
     def filter_assets(self):
-        """Фильтрация активов"""
         search_text = self.search_var.get().lower()
-        dislocation = self.dislocation_var.get()
+        direction = self.direction_var.get()
         status = self.status_var.get()
 
         self.filtered_assets = []
         for asset in self.assets:
             if search_text:
-                searchable = f"{asset['name']} {asset['inventory']} {asset['location']} {asset['responsible']} {asset['dislocation']}"
+                searchable = f"{asset['name']} {asset['inventory']} {asset['location']} {asset['responsible']} {asset['direction']}"
                 if search_text not in searchable.lower():
                     continue
 
-            if dislocation != "Все" and asset['dislocation'] != dislocation:
+            if direction != "Все" and asset['direction'] != direction:
                 continue
 
             if status != "Все" and asset['status'] != status:
@@ -462,7 +421,6 @@ class AssetManager:
         self.update_stats()
 
     def update_table(self):
-        """Обновление таблицы"""
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -478,7 +436,7 @@ class AssetManager:
                 asset['name'],
                 asset['quantity'],
                 asset['unit'],
-                asset['dislocation'],
+                asset['direction'],
                 asset['location'],
                 asset['responsible'],
                 asset['cost'],
@@ -491,26 +449,22 @@ class AssetManager:
         self.tree.tag_configure('in_repair', background='#FFF3E0')
 
     def update_stats(self):
-        """Обновление статистики"""
         total = len(self.assets)
         active = len([a for a in self.assets if a['status'] == 'Активен'])
         in_repair = len([a for a in self.assets if a['status'] == 'В ремонте'])
         written_off = len([a for a in self.assets if a['status'] == 'Списан'])
         total_cost = sum(a['cost'] for a in self.assets if isinstance(a['cost'], (int, float)))
-
         self.stats_label.config(
             text=f"Всего: {total} | Активных: {active} | В ремонте: {in_repair} | "
                  f"Списано: {written_off} | Общая стоимость: {total_cost:,.2f} ₽"
         )
 
     def export_to_excel(self):
-        """Экспорт в Excel с выбором места сохранения"""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
             initialfile="assets_export.xlsx"
         )
-
         if file_path:
             try:
                 import shutil
@@ -520,12 +474,10 @@ class AssetManager:
                 messagebox.showerror("Ошибка", f"Не удалось экспортировать: {str(e)}")
 
     def auto_save(self):
-        """Автосохранение каждые 5 минут"""
         self.save_to_excel()
         self.root.after(300000, self.auto_save)
 
     def on_closing(self):
-        """Действия при закрытии приложения"""
         if messagebox.askyesno("Выход", "Сохранить изменения перед выходом?"):
             if self.save_to_excel():
                 self.root.destroy()
@@ -534,8 +486,6 @@ class AssetManager:
 
 
 class AssetDialog:
-    """Диалоговое окно для добавления/редактирования актива"""
-
     def __init__(self, parent, title, asset=None):
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
@@ -550,13 +500,13 @@ class AssetDialog:
 
         self.dialog.transient(parent)
         self.dialog.grab_set()
+        self.dialog.focus_force()
+        self.dialog.lift()
 
     def setup_ui(self):
-        """Создание интерфейса диалога"""
-        title_label = tk.Label(self.dialog, text="Информация об активе",
-                              font=('Segoe UI', 16, 'bold'),
-                              bg='#f0f0f0', fg='#333333')
-        title_label.pack(pady=20)
+        tk.Label(self.dialog, text="Информация об активе",
+                font=('Segoe UI', 16, 'bold'),
+                bg='#f0f0f0', fg='#333333').pack(pady=20)
 
         form_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         form_frame.pack(fill=tk.BOTH, expand=True, padx=30)
@@ -566,7 +516,7 @@ class AssetDialog:
             ('Наименование:', 'name', True),
             ('Количество:', 'quantity', False),
             ('Ед. измерения:', 'unit', False),
-            ('Дислокация:', 'dislocation', True),
+            ('Направление:', 'direction', True),
             ('Расположение:', 'location', True),
             ('Ответственный:', 'responsible', True),
             ('Стоимость:', 'cost', False),
@@ -578,9 +528,8 @@ class AssetDialog:
         self.entries = {}
 
         for i, (label, key, required) in enumerate(fields):
-            lbl = tk.Label(form_frame, text=label,
-                          bg='#f0f0f0', font=('Segoe UI', 10))
-            lbl.grid(row=i, column=0, sticky='w', pady=5)
+            tk.Label(form_frame, text=label,
+                    bg='#f0f0f0', font=('Segoe UI', 10)).grid(row=i, column=0, sticky='w', pady=5)
 
             if key == 'status':
                 var = tk.StringVar(value=self.asset.get(key, 'Активен'))
@@ -604,32 +553,28 @@ class AssetDialog:
             self.entries[key] = var
 
             if required:
-                req_label = tk.Label(form_frame, text="*", fg='red',
-                                    bg='#f0f0f0', font=('Segoe UI', 10, 'bold'))
-                req_label.grid(row=i, column=2, sticky='w')
+                tk.Label(form_frame, text="*", fg='red',
+                        bg='#f0f0f0', font=('Segoe UI', 10, 'bold')).grid(row=i, column=2, sticky='w')
 
         button_frame = tk.Frame(self.dialog, bg='#f0f0f0')
         button_frame.pack(pady=20)
 
-        save_btn = tk.Button(button_frame, text="💾 Сохранить",
-                            command=self.save,
-                            bg='#4CAF50', fg='white',
-                            font=('Segoe UI', 10, 'bold'),
-                            relief=tk.FLAT, cursor='hand2',
-                            padx=20, pady=10)
-        save_btn.pack(side=tk.LEFT, padx=10)
+        tk.Button(button_frame, text="💾 Сохранить",
+                 command=self.save,
+                 bg='#4CAF50', fg='white',
+                 font=('Segoe UI', 10, 'bold'),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=10)
 
-        cancel_btn = tk.Button(button_frame, text="Отмена",
-                              command=self.dialog.destroy,
-                              bg='#9E9E9E', fg='white',
-                              font=('Segoe UI', 10),
-                              relief=tk.FLAT, cursor='hand2',
-                              padx=20, pady=10)
-        cancel_btn.pack(side=tk.LEFT, padx=10)
+        tk.Button(button_frame, text="Отмена",
+                 command=self.dialog.destroy,
+                 bg='#9E9E9E', fg='white',
+                 font=('Segoe UI', 10),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=10)
 
     def save(self):
-        """Сохранение данных"""
-        required_fields = ['name', 'dislocation', 'location', 'responsible']
+        required_fields = ['name', 'direction', 'location', 'responsible']
         for field in required_fields:
             if not self.entries[field].get().strip():
                 messagebox.showwarning("Внимание",
@@ -648,7 +593,7 @@ class AssetDialog:
             'name': self.entries['name'].get().strip(),
             'quantity': quantity,
             'unit': self.entries['unit'].get().strip() or 'шт.',
-            'dislocation': self.entries['dislocation'].get().strip(),
+            'direction': self.entries['direction'].get().strip(),
             'location': self.entries['location'].get().strip(),
             'responsible': self.entries['responsible'].get().strip(),
             'cost': cost,
