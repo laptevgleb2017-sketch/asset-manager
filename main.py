@@ -16,6 +16,7 @@ class AssetManager:
 
         self.dark_mode = False
         self.tooltip = None
+        self.full_names = {}   # словарь: item_id -> полное название
 
         desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
         self.data_dir = os.path.join(desktop, 'Учёт имущества')
@@ -322,7 +323,7 @@ class AssetManager:
             if row and col:
                 col_index = int(col.replace('#', '')) - 1
                 if col_index == 0:  # Колонка "Наименование"
-                    full_name = self.tree.set(row, 'full_name')
+                    full_name = self.full_names.get(row, '')
                     if full_name and len(full_name) > 20:
                         self.show_tooltip(event.x_root, event.y_root, full_name)
                     else:
@@ -367,11 +368,11 @@ class AssetManager:
         values = self.tree.item(item, 'values')
         children = self.tree.get_children(item)
         if children:
-            name = self.tree.set(item, 'full_name')
+            name = self.full_names.get(item, '')
             qty = values[2] if len(values) > 2 else ""
             self.detail_label.config(text=f"Группа: {name} | Всего: {qty}")
         else:
-            name = self.tree.set(item, 'full_name')
+            name = self.full_names.get(item, '')
             inv = values[1] if len(values) > 1 else ""
             self.detail_label.config(text=f"Актив: {name} | Инв. номер: {inv}")
 
@@ -532,19 +533,19 @@ class AssetManager:
             return
         children = self.tree.get_children(item)
         if children:
-            # Переключаем состояние
             current_state = self.tree.item(item, 'open')
             self.tree.item(item, open=not current_state)
             values = list(self.tree.item(item, 'values'))
             if values:
+                full_name = self.full_names.get(item, '')
                 if not current_state:
-                    values[0] = self.truncate_text('▾ ' + self.tree.set(item, 'full_name'))
+                    values[0] = self.truncate_text('▾ ' + full_name)
                 else:
-                    values[0] = self.truncate_text('▸ ' + self.tree.set(item, 'full_name'))
+                    values[0] = self.truncate_text('▸ ' + full_name)
                 self.tree.item(item, values=values)
             return "break"
         else:
-            self.edit_asset_by_item(item)   # исправлено
+            self.edit_asset_by_item(item)
             return "break"
 
     def open_scan(self, act_name):
@@ -588,7 +589,6 @@ class AssetManager:
         self.edit_asset_by_item(item)
 
     def edit_asset_by_item(self, item):
-        """Редактирование актива по конкретному item (не зависит от selection)."""
         children = self.tree.get_children(item)
         if children:
             messagebox.showinfo("Информация", "Выберите конкретный актив внутри группы")
@@ -695,6 +695,7 @@ class AssetManager:
     def update_table(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+        self.full_names.clear()
 
         for group in self.grouped_assets:
             if len(group['assets']) == 1:
@@ -712,7 +713,7 @@ class AssetManager:
                     asset['act'],
                     asset['note']
                 ), tags=tags)
-                self.tree.set(item_id, 'full_name', asset['name'])
+                self.full_names[item_id] = asset['name']
             else:
                 group_tags = ('group',)
                 group_display_name = self.truncate_text('▸ ' + group['name'])
@@ -726,8 +727,8 @@ class AssetManager:
                     '',
                     '',
                     ''
-                ), tags=group_tags, open=True)  # раскрыто по умолчанию
-                self.tree.set(group_id, 'full_name', group['name'])
+                ), tags=group_tags, open=True)
+                self.full_names[group_id] = group['name']
 
                 for asset in group['assets']:
                     tags = self.get_tags(asset)
@@ -742,7 +743,7 @@ class AssetManager:
                         asset['act'],
                         asset['note']
                     ), tags=tags)
-                    self.tree.set(child_id, 'full_name', asset['name'])
+                    self.full_names[child_id] = asset['name']
 
     def get_tags(self, asset):
         tags = []
