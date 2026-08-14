@@ -16,16 +16,15 @@ class AssetManager:
 
         self.dark_mode = False
 
-        # Папки
         desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
         self.data_dir = os.path.join(desktop, 'Учёт имущества')
         self.scans_dir = os.path.join(self.data_dir, 'Сканы')
         os.makedirs(self.scans_dir, exist_ok=True)
         self.excel_path = os.path.join(self.data_dir, 'assets.xlsx')
 
-        self.assets = []          # плоский список всех активов
-        self.filtered_assets = [] # отфильтрованный плоский список
-        self.grouped_assets = []  # сгруппированный список для отображения
+        self.assets = []
+        self.filtered_assets = []
+        self.grouped_assets = []
 
         if not os.path.exists(self.excel_path):
             self.create_excel_file()
@@ -37,8 +36,8 @@ class AssetManager:
         self.setup_shortcuts()
         self.auto_save()
 
-    # ---------- Цветовые схемы ----------
     def get_colors(self):
+        # ... без изменений ...
         if self.dark_mode:
             return {
                 'bg': '#2e2e2e', 'fg': '#ffffff', 'panel_bg': '#3c3c3c',
@@ -72,7 +71,6 @@ class AssetManager:
         self.main_container = tk.Frame(self.root)
         self.main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # Верхняя панель
         self.top_panel = tk.Frame(self.main_container)
         self.top_panel.pack(fill=tk.X, pady=(0, 20))
 
@@ -117,7 +115,6 @@ class AssetManager:
         self.inner_filter = tk.Frame(self.filter_panel)
         self.inner_filter.pack(fill=tk.X, padx=10, pady=10)
 
-        # Поиск
         self.search_label = tk.Label(self.inner_filter, text="🔍 Поиск:")
         self.search_label.pack(side=tk.LEFT, padx=(0, 5))
         self.search_var = tk.StringVar()
@@ -125,7 +122,6 @@ class AssetManager:
         self.search_entry = tk.Entry(self.inner_filter, textvariable=self.search_var, width=20)
         self.search_entry.pack(side=tk.LEFT, padx=(0, 10))
 
-        # Фильтр по наименованию
         self.name_label = tk.Label(self.inner_filter, text="Наименование:")
         self.name_label.pack(side=tk.LEFT, padx=(0, 5))
         self.name_filter_var = tk.StringVar(value="Все")
@@ -135,7 +131,6 @@ class AssetManager:
         self.name_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.name_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по расположению
         self.location_label = tk.Label(self.inner_filter, text="Расположение:")
         self.location_label.pack(side=tk.LEFT, padx=(0, 5))
         self.location_filter_var = tk.StringVar(value="Все")
@@ -145,7 +140,6 @@ class AssetManager:
         self.location_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.location_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по акту/накладной
         self.act_label = tk.Label(self.inner_filter, text="Акт/Накладная:")
         self.act_label.pack(side=tk.LEFT, padx=(0, 5))
         self.act_filter_var = tk.StringVar(value="Все")
@@ -155,7 +149,6 @@ class AssetManager:
         self.act_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.act_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по инвентарному номеру
         self.inv_label = tk.Label(self.inner_filter, text="Инв. номер:")
         self.inv_label.pack(side=tk.LEFT, padx=(0, 5))
         self.inv_filter_var = tk.StringVar(value="Все")
@@ -165,7 +158,6 @@ class AssetManager:
         self.inv_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.inv_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по направлению
         self.direction_label = tk.Label(self.inner_filter, text="Направление:")
         self.direction_label.pack(side=tk.LEFT, padx=(0, 5))
         self.direction_var = tk.StringVar(value="Все")
@@ -175,7 +167,6 @@ class AssetManager:
         self.direction_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.direction_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
 
-        # Фильтр по статусу
         self.status_label = tk.Label(self.inner_filter, text="Статус:")
         self.status_label.pack(side=tk.LEFT, padx=(0, 5))
         self.status_var = tk.StringVar(value="Все")
@@ -189,7 +180,6 @@ class AssetManager:
         self.table_frame = tk.Frame(self.main_container, relief=tk.SOLID, bd=1)
         self.table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Колонки: Наименование, Инв. номер, Кол-во/ед. изм., Направление, Расположение, Кому выдано, Статус, Акт/Накладная, Примечание
         columns = {
             'name': ('Наименование', 200),
             'inventory': ('Инв. номер', 100),
@@ -222,7 +212,6 @@ class AssetManager:
         self.tree.bind('<Double-Button-1>', self.on_tree_double_click)
         self.tree.bind('<Button-1>', self.on_tree_click)
 
-        # Нижняя панель
         self.stats_panel = tk.Frame(self.main_container)
         self.stats_panel.pack(fill=tk.X, pady=(10, 0))
         self.stats_label = tk.Label(self.stats_panel, text="")
@@ -237,6 +226,7 @@ class AssetManager:
         self.update_stats()
 
     def apply_theme(self):
+        # ... без изменений ...
         c = self.get_colors()
         self.root.configure(bg=c['bg'])
         self.main_container.configure(bg=c['bg'])
@@ -294,7 +284,6 @@ class AssetManager:
         self.dark_mode = not self.dark_mode
         self.apply_theme()
 
-    # ----- Вспомогательные методы -----
     def get_unique_values(self, field):
         values = set()
         for asset in self.assets:
@@ -313,28 +302,23 @@ class AssetManager:
         self.inv_combo['values'] = ["Все"] + self.get_unique_values('inventory')
         self.direction_combo['values'] = ["Все"] + self.get_directions()
 
-    # ----- Работа с Excel -----
     def create_excel_file(self):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Активы"
-
         headers = [
             'Наименование', 'Инв. номер', 'Количество', 'Ед. измерения',
             'Направление', 'Расположение', 'Кому выдано', 'Статус',
             'Акт/Накладная', 'Примечание'
         ]
-
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.font = Font(bold=True, color='FFFFFF', size=12)
             cell.fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
             cell.alignment = Alignment(horizontal='center', vertical='center')
-
         widths = [25, 15, 10, 12, 20, 20, 20, 12, 20, 25]
         for col, width in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(col)].width = width
-
         wb.save(self.excel_path)
 
     def load_assets(self):
@@ -366,19 +350,16 @@ class AssetManager:
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Активы"
-
             headers = [
                 'Наименование', 'Инв. номер', 'Количество', 'Ед. измерения',
                 'Направление', 'Расположение', 'Кому выдано', 'Статус',
                 'Акт/Накладная', 'Примечание'
             ]
-
             for col, header in enumerate(headers, 1):
                 cell = ws.cell(row=1, column=col, value=header)
                 cell.font = Font(bold=True, color='FFFFFF', size=12)
                 cell.fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
                 cell.alignment = Alignment(horizontal='center', vertical='center')
-
             for row_idx, asset in enumerate(self.assets, 2):
                 ws.cell(row=row_idx, column=1, value=asset['name'])
                 ws.cell(row=row_idx, column=2, value=asset['inventory'])
@@ -390,26 +371,21 @@ class AssetManager:
                 ws.cell(row=row_idx, column=8, value=asset['status'])
                 ws.cell(row=row_idx, column=9, value=asset['act'])
                 ws.cell(row=row_idx, column=10, value=asset['note'])
-
                 if row_idx % 2 == 0:
                     for col in range(1, 11):
                         ws.cell(row=row_idx, column=col).fill = PatternFill(
                             start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
-
             widths = [25, 15, 10, 12, 20, 20, 20, 12, 20, 25]
             for col, width in enumerate(widths, 1):
                 ws.column_dimensions[get_column_letter(col)].width = width
-
             ws.auto_filter.ref = f"A1:J{len(self.assets) + 1}"
             ws.freeze_panes = 'A2'
-
             wb.save(self.excel_path)
             return True
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить данные: {str(e)}")
             return False
 
-    # ----- Группировка -----
     def build_grouped_assets(self):
         groups = {}
         for asset in self.filtered_assets:
@@ -425,20 +401,18 @@ class AssetManager:
             groups[key]['assets'].append(asset)
             groups[key]['total_qty'] += asset['quantity']
             groups[key]['inventories'].append(asset['inventory'])
-
         self.grouped_assets = list(groups.values())
 
-    # ----- Обработчики дерева -----
     def on_tree_click(self, event):
         region = self.tree.identify('region', event.x, event.y)
         if region == 'cell':
             col = self.tree.identify_column(event.x)
-            if col == '#8':   # column "Акт/Накладная"
+            if col == '#8':
                 item = self.tree.identify_row(event.y)
                 if item:
                     values = self.tree.item(item, 'values')
                     if values and len(values) >= 8:
-                        act = values[7]   # index 7 corresponds to 'act'
+                        act = values[7]
                         self.open_scan(act)
 
     def on_tree_double_click(self, event):
@@ -447,9 +421,21 @@ class AssetManager:
             return
         children = self.tree.get_children(item)
         if children:
-            self.tree.item(item, open=not self.tree.item(item, 'open'))
+            # Переключаем состояние
+            current_state = self.tree.item(item, 'open')
+            self.tree.item(item, open=not current_state)
+            # Обновляем стрелку
+            values = list(self.tree.item(item, 'values'))
+            if values:
+                if not current_state:
+                    values[0] = values[0].replace('▸ ', '▾ ')
+                else:
+                    values[0] = values[0].replace('▾ ', '▸ ')
+                self.tree.item(item, values=values)
+            return "break"
         else:
             self.edit_asset()
+            return "break"
 
     def open_scan(self, act_name):
         if not act_name:
@@ -472,7 +458,6 @@ class AssetManager:
         else:
             messagebox.showinfo("Информация", f"Скан не найден. Разместите файл в папке:\n{self.scans_dir}\n\nИскомое название: {act_name}")
 
-    # ----- CRUD операции -----
     def add_asset(self):
         dialog = AssetDialog(self.root, "Добавить актив")
         self.root.wait_window(dialog.dialog)
@@ -489,32 +474,26 @@ class AssetManager:
         if not selected:
             messagebox.showwarning("Внимание", "Выберите актив для редактирования")
             return
-
         item = selected[0]
         children = self.tree.get_children(item)
         if children:
             messagebox.showinfo("Информация", "Выберите конкретный актив внутри группы")
             return
-
         values = self.tree.item(item, 'values')
         if not values or len(values) < 2:
             messagebox.showerror("Ошибка", "Не удалось определить актив")
             return
-
-        inventory = values[1]   # Инв. номер
+        inventory = values[1]
         asset_index = None
         for i, asset in enumerate(self.assets):
             if str(asset['inventory']) == str(inventory):
                 asset_index = i
                 break
-
         if asset_index is None:
             messagebox.showerror("Ошибка", "Актив не найден в базе данных")
             return
-
         dialog = AssetDialog(self.root, "Редактировать актив", self.assets[asset_index])
         self.root.wait_window(dialog.dialog)
-
         if dialog.result:
             self.assets[asset_index] = dialog.result
             self.save_to_excel()
@@ -526,11 +505,9 @@ class AssetManager:
         if not selected:
             messagebox.showwarning("Внимание", "Выберите активы для удаления")
             return
-
         if not messagebox.askyesno("Подтверждение",
                                    f"Удалить выбранные активы ({len(selected)} шт.)?"):
             return
-
         inv_numbers = []
         for item in selected:
             children = self.tree.get_children(item)
@@ -543,10 +520,8 @@ class AssetManager:
                 vals = self.tree.item(item, 'values')
                 if vals and len(vals) >= 2:
                     inv_numbers.append(vals[1])
-
         if not inv_numbers:
             return
-
         self.assets = [a for a in self.assets if str(a['inventory']) not in inv_numbers]
         self.save_to_excel()
         self.refresh_after_change()
@@ -566,14 +541,12 @@ class AssetManager:
                     pass
         return f"INV-{max_num + 1:04d}"
 
-    # ----- Обновление отображения -----
     def refresh_after_change(self):
         self.update_filter_values()
         self.filter_assets()
 
     def filter_assets(self):
         search_text = self.search_var.get().lower()
-
         self.filtered_assets = []
         for asset in self.assets:
             if self.name_filter_var.get() != "Все" and asset['name'] != self.name_filter_var.get():
@@ -588,7 +561,6 @@ class AssetManager:
                 continue
             if self.status_var.get() != "Все" and asset['status'] != self.status_var.get():
                 continue
-
             if search_text:
                 searchable = ' '.join([
                     str(asset.get('name', '')),
@@ -601,9 +573,7 @@ class AssetManager:
                 ]).lower()
                 if search_text not in searchable:
                     continue
-
             self.filtered_assets.append(asset)
-
         self.build_grouped_assets()
         self.update_table()
         self.update_stats()
@@ -611,7 +581,6 @@ class AssetManager:
     def update_table(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
-
         for group in self.grouped_assets:
             if len(group['assets']) == 1:
                 asset = group['assets'][0]
@@ -629,8 +598,9 @@ class AssetManager:
                 ), tags=tags)
             else:
                 group_tags = ('group',)
+                group_name = '▸ ' + group['name']
                 group_id = self.tree.insert('', 'end', values=(
-                    group['name'],
+                    group_name,
                     '',
                     f"{group['total_qty']}/{group['unit']}",
                     '',
@@ -640,7 +610,6 @@ class AssetManager:
                     '',
                     ''
                 ), tags=group_tags, open=False)
-
                 for asset in group['assets']:
                     tags = self.get_tags(asset)
                     self.tree.insert(group_id, 'end', values=(
@@ -673,7 +642,6 @@ class AssetManager:
                  f"Списано: {written_off}"
         )
 
-    # ----- Экспорт и автосохранение -----
     def export_to_excel(self):
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
@@ -711,6 +679,7 @@ class AssetManager:
 
 
 class AssetDialog:
+    # ... класс диалога без изменений ...
     def __init__(self, parent, title, asset=None):
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
