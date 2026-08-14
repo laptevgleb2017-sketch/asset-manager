@@ -11,11 +11,11 @@ class AssetManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Учёт имущества")
-        self.root.geometry("1400x750")
+        self.root.geometry("1400x800")
         self.root.configure(bg='#f0f0f0')
 
         self.dark_mode = False
-        self.tooltip = None  # для всплывающей подсказки
+        self.tooltip = None
 
         desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
         self.data_dir = os.path.join(desktop, 'Учёт имущества')
@@ -50,7 +50,8 @@ class AssetManager:
                 'tag_written_off': '#5c3a3a', 'tag_in_repair': '#5c4a2a',
                 'filter_bg': '#3c3c3c', 'filter_fg': '#ffffff',
                 'stats_bg': '#2e2e2e', 'stats_fg': '#cccccc',
-                'detail_bg': '#2e2e2e', 'detail_fg': '#ffffff'
+                'detail_bg': '#2e2e2e', 'detail_fg': '#ffffff',
+                'grid_color': '#555555'
             }
         else:
             return {
@@ -63,7 +64,8 @@ class AssetManager:
                 'tag_written_off': '#FFEBEE', 'tag_in_repair': '#FFF3E0',
                 'filter_bg': '#ffffff', 'filter_fg': '#333333',
                 'stats_bg': '#f0f0f0', 'stats_fg': '#666666',
-                'detail_bg': '#f0f0f0', 'detail_fg': '#333333'
+                'detail_bg': '#f0f0f0', 'detail_fg': '#333333',
+                'grid_color': '#CCCCCC'
             }
 
     def setup_styles(self):
@@ -185,23 +187,23 @@ class AssetManager:
         self.table_frame.pack(fill=tk.BOTH, expand=True)
 
         columns = {
-            'name': ('Наименование', 300),      # <-- увеличена ширина
-            'inventory': ('Инв. номер', 100),
-            'qty_unit': ('Кол-во/ед. изм.', 100),
-            'direction': ('Направление', 120),
-            'location': ('Расположение', 150),
-            'issued_to': ('Кому выдано', 150),
-            'status': ('Статус', 100),
-            'act': ('Акт/Накладная', 120),
-            'note': ('Примечание', 200)
+            'name': ('Наименование', 350, 'w'),
+            'inventory': ('Инв. номер', 100, 'center'),
+            'qty_unit': ('Кол-во/ед. изм.', 100, 'center'),
+            'direction': ('Направление', 130, 'w'),
+            'location': ('Расположение', 150, 'w'),
+            'issued_to': ('Кому выдано', 150, 'w'),
+            'status': ('Статус', 100, 'center'),
+            'act': ('Акт/Накладная', 130, 'w'),
+            'note': ('Примечание', 200, 'w')
         }
 
         self.tree = ttk.Treeview(self.table_frame, columns=tuple(columns.keys()),
                                  show='headings', selectmode='extended')
 
-        for col, (text, width) in columns.items():
+        for col, (text, width, anchor) in columns.items():
             self.tree.heading(col, text=text)
-            self.tree.column(col, width=width, anchor='center', stretch=True)
+            self.tree.column(col, width=width, anchor=anchor, stretch=True)
 
         vscroll = ttk.Scrollbar(self.table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         hscroll = ttk.Scrollbar(self.table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
@@ -215,18 +217,18 @@ class AssetManager:
 
         self.tree.bind('<Double-Button-1>', self.on_tree_double_click)
         self.tree.bind('<Button-1>', self.on_tree_click)
-        self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)   # для строки деталей
-        self.tree.bind('<Motion>', self.on_tree_motion)             # для tooltip
+        self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)
+        self.tree.bind('<Motion>', self.on_tree_motion)
         self.tree.bind('<Leave>', self.hide_tooltip)
 
-        # Строка деталей (под таблицей)
+        # Строка деталей
         self.detail_frame = tk.Frame(self.main_container)
         self.detail_frame.pack(fill=tk.X, pady=(5, 0))
         self.detail_label = tk.Label(self.detail_frame, text="", anchor='w',
                                      font=('Segoe UI', 10))
         self.detail_label.pack(fill=tk.X)
 
-        # Нижняя панель со статистикой и кнопкой темы
+        # Статистика и кнопка темы
         self.stats_panel = tk.Frame(self.main_container)
         self.stats_panel.pack(fill=tk.X, pady=(10, 0))
         self.stats_label = tk.Label(self.stats_panel, text="")
@@ -254,8 +256,6 @@ class AssetManager:
         self.table_frame.configure(bg=c['filter_bg'])
         self.stats_panel.configure(bg=c['bg'])
         self.stats_label.configure(bg=c['bg'], fg=c['stats_fg'])
-
-        # Новые элементы
         self.detail_frame.configure(bg=c['detail_bg'])
         self.detail_label.configure(bg=c['detail_bg'], fg=c['detail_fg'])
 
@@ -274,13 +274,22 @@ class AssetManager:
                              background=c['tree_bg'],
                              fieldbackground=c['tree_bg'],
                              foreground=c['tree_fg'],
-                             rowheight=30,
-                             font=('Segoe UI', 10))
+                             rowheight=40,                     # увеличенная высота строк
+                             font=('Segoe UI', 10),
+                             borderwidth=1,
+                             relief='solid',
+                             bordercolor=c['grid_color'],
+                             lightcolor=c['grid_color'],
+                             darkcolor=c['grid_color'])
         self.style.configure('Treeview.Heading',
                              background=c['heading_bg'],
                              foreground=c['heading_fg'],
                              font=('Segoe UI', 10, 'bold'),
-                             relief='flat')
+                             relief='solid',
+                             borderwidth=1,
+                             bordercolor=c['grid_color'],
+                             lightcolor=c['grid_color'],
+                             darkcolor=c['grid_color'])
         self.style.map('Treeview',
                        background=[('selected', c['tree_selected_bg'])],
                        foreground=[('selected', c['tree_selected_fg'])])
@@ -309,16 +318,23 @@ class AssetManager:
             col = self.tree.identify_column(event.x)
             row = self.tree.identify_row(event.y)
             if row and col:
-                values = self.tree.item(row, 'values')
                 col_index = int(col.replace('#', '')) - 1
-                if 0 <= col_index < len(values):
-                    text = str(values[col_index])
-                    if len(text) > 20:  # порог, можно настроить
-                        self.show_tooltip(event.x_root, event.y_root, text)
+                if col_index == 0:  # Колонка "Наименование"
+                    full_name = self.tree.set(row, 'full_name')
+                    if full_name and len(full_name) > 20:
+                        self.show_tooltip(event.x_root, event.y_root, full_name)
                     else:
                         self.hide_tooltip()
                 else:
-                    self.hide_tooltip()
+                    values = self.tree.item(row, 'values')
+                    if 0 <= col_index < len(values):
+                        text = str(values[col_index])
+                        if len(text) > 20:
+                            self.show_tooltip(event.x_root, event.y_root, text)
+                        else:
+                            self.hide_tooltip()
+                    else:
+                        self.hide_tooltip()
             else:
                 self.hide_tooltip()
         else:
@@ -329,7 +345,6 @@ class AssetManager:
         self.tooltip = tk.Toplevel(self.root)
         self.tooltip.wm_overrideredirect(True)
         self.tooltip.wm_geometry(f"+{x+10}+{y+10}")
-        # Цвет tooltip всегда жёлтый, текст чёрный для читаемости
         label = tk.Label(self.tooltip, text=text, background='#ffffe0',
                          relief='solid', borderwidth=1, padx=5, pady=2,
                          wraplength=400, justify='left', fg='#000000')
@@ -350,20 +365,21 @@ class AssetManager:
         values = self.tree.item(item, 'values')
         children = self.tree.get_children(item)
         if children:
-            # Группа
-            name = values[0] if values else ""
+            name = self.tree.set(item, 'full_name')
             qty = values[2] if len(values) > 2 else ""
             self.detail_label.config(text=f"Группа: {name} | Всего: {qty}")
         else:
-            # Конкретный актив
-            if values:
-                name = values[0] if values[0] else "—"
-                inv = values[1] if values[1] else "—"
-                self.detail_label.config(text=f"Актив: {name} | Инв. номер: {inv}")
-            else:
-                self.detail_label.config(text="")
+            name = self.tree.set(item, 'full_name')
+            inv = values[1] if len(values) > 1 else ""
+            self.detail_label.config(text=f"Актив: {name} | Инв. номер: {inv}")
 
-    # ---------- Остальные методы (без изменений) ----------
+    # ---------- Обрезка текста ----------
+    def truncate_text(self, text, max_length=30):
+        if len(text) > max_length:
+            return text[:max_length-1] + '…'
+        return text
+
+    # ---------- Остальные методы ----------
     def get_unique_values(self, field):
         values = set()
         for asset in self.assets:
@@ -463,7 +479,6 @@ class AssetManager:
             wb.save(self.excel_path)
             return True
         except PermissionError:
-            # Если файл заблокирован, пробуем сохранить во временную папку
             backup_path = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Temp', 'assets_backup.xlsx')
             try:
                 wb.save(backup_path)
@@ -520,9 +535,9 @@ class AssetManager:
             values = list(self.tree.item(item, 'values'))
             if values:
                 if not current_state:
-                    values[0] = values[0].replace('▸ ', '▾ ')
+                    values[0] = self.truncate_text('▾ ' + self.tree.set(item, 'full_name'))
                 else:
-                    values[0] = values[0].replace('▾ ', '▸ ')
+                    values[0] = self.truncate_text('▸ ' + self.tree.set(item, 'full_name'))
                 self.tree.item(item, values=values)
             return "break"
         else:
@@ -673,12 +688,14 @@ class AssetManager:
     def update_table(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+
         for group in self.grouped_assets:
             if len(group['assets']) == 1:
                 asset = group['assets'][0]
                 tags = self.get_tags(asset)
-                self.tree.insert('', 'end', values=(
-                    asset['name'],
+                display_name = self.truncate_text(asset['name'])
+                item_id = self.tree.insert('', 'end', values=(
+                    display_name,
                     asset['inventory'],
                     f"{asset['quantity']}/{asset['unit']}",
                     asset['direction'],
@@ -688,11 +705,12 @@ class AssetManager:
                     asset['act'],
                     asset['note']
                 ), tags=tags)
+                self.tree.set(item_id, 'full_name', asset['name'])
             else:
                 group_tags = ('group',)
-                group_name = '▸ ' + group['name']
+                group_display_name = self.truncate_text('▸ ' + group['name'])
                 group_id = self.tree.insert('', 'end', values=(
-                    group_name,
+                    group_display_name,
                     '',
                     f"{group['total_qty']}/{group['unit']}",
                     '',
@@ -702,10 +720,12 @@ class AssetManager:
                     '',
                     ''
                 ), tags=group_tags, open=False)
+                self.tree.set(group_id, 'full_name', group['name'])
+
                 for asset in group['assets']:
                     tags = self.get_tags(asset)
-                    self.tree.insert(group_id, 'end', values=(
-                        '',
+                    child_id = self.tree.insert(group_id, 'end', values=(
+                        '',  # пустое имя у дочерних
                         asset['inventory'],
                         f"{asset['quantity']}/{asset['unit']}",
                         asset['direction'],
@@ -715,6 +735,7 @@ class AssetManager:
                         asset['act'],
                         asset['note']
                     ), tags=tags)
+                    self.tree.set(child_id, 'full_name', asset['name'])
 
     def get_tags(self, asset):
         tags = []
