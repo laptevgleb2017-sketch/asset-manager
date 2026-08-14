@@ -117,7 +117,7 @@ class AssetManager:
         self.inner_filter = tk.Frame(self.filter_panel)
         self.inner_filter.pack(fill=tk.X, padx=10, pady=10)
 
-        # Поиск (универсальный)
+        # Поиск
         self.search_label = tk.Label(self.inner_filter, text="🔍 Поиск:")
         self.search_label.pack(side=tk.LEFT, padx=(0, 5))
         self.search_var = tk.StringVar()
@@ -189,7 +189,7 @@ class AssetManager:
         self.table_frame = tk.Frame(self.main_container, relief=tk.SOLID, bd=1)
         self.table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Порядок колонок: Наименование, Инв. номер, Кол-во/ед. изм., Направление, Расположение, Кому выдано, Статус, Акт/Накладная, Примечание
+        # Колонки: Наименование, Инв. номер, Кол-во/ед. изм., Направление, Расположение, Кому выдано, Статус, Акт/Накладная, Примечание
         columns = {
             'name': ('Наименование', 200),
             'inventory': ('Инв. номер', 100),
@@ -219,7 +219,6 @@ class AssetManager:
         self.table_frame.grid_rowconfigure(0, weight=1)
         self.table_frame.grid_columnconfigure(0, weight=1)
 
-        # Обработчики
         self.tree.bind('<Double-Button-1>', self.on_tree_double_click)
         self.tree.bind('<Button-1>', self.on_tree_click)
 
@@ -308,7 +307,6 @@ class AssetManager:
         return self.get_unique_values('direction')
 
     def update_filter_values(self):
-        # Обновляем все комбобоксы
         self.name_combo['values'] = ["Все"] + self.get_unique_values('name')
         self.location_combo['values'] = ["Все"] + self.get_unique_values('location')
         self.act_combo['values'] = ["Все"] + self.get_unique_values('act')
@@ -321,7 +319,6 @@ class AssetManager:
         ws = wb.active
         ws.title = "Активы"
 
-        # Порядок колонок в Excel: Наименование, Инв. номер, Кол-во, Ед. изм., Направление, Расположение, Кому выдано, Статус, Акт/Накладная, Примечание
         headers = [
             'Наименование', 'Инв. номер', 'Количество', 'Ед. измерения',
             'Направление', 'Расположение', 'Кому выдано', 'Статус',
@@ -414,7 +411,6 @@ class AssetManager:
 
     # ----- Группировка -----
     def build_grouped_assets(self):
-        """Группирует активы по наименованию (и, возможно, по направлению)"""
         groups = {}
         for asset in self.filtered_assets:
             key = asset['name'].strip().lower()
@@ -434,42 +430,30 @@ class AssetManager:
 
     # ----- Обработчики дерева -----
     def on_tree_click(self, event):
-        """Обработка клика по строке (для открытия скана)"""
         region = self.tree.identify('region', event.x, event.y)
         if region == 'cell':
             col = self.tree.identify_column(event.x)
-            # Колонка 'act' имеет индекс #8
-            if col == '#8':
+            if col == '#8':   # column "Акт/Накладная"
                 item = self.tree.identify_row(event.y)
                 if item:
                     values = self.tree.item(item, 'values')
                     if values and len(values) >= 8:
-                        act = values[7]  # Акт/Накладная
+                        act = values[7]   # index 7 corresponds to 'act'
                         self.open_scan(act)
 
     def on_tree_double_click(self, event):
-        """Двойной клик – если это группа, раскрываем/скрываем, иначе редактируем"""
         item = self.tree.identify_row(event.y)
         if not item:
             return
-        # Проверяем, есть ли у строки дети (это группа)
         children = self.tree.get_children(item)
         if children:
-            # Раскрываем/скрываем
-            if self.tree.item(item, 'open'):
-                self.tree.item(item, open=False)
-            else:
-                self.tree.item(item, open=True)
+            self.tree.item(item, open=not self.tree.item(item, 'open'))
         else:
-            # Редактируем конкретный актив
             self.edit_asset()
 
     def open_scan(self, act_name):
-        """Открывает скан документа из папки Сканы"""
         if not act_name:
-            messagebox.showwarning("Внимание", "Не указано название акта/накладной")
             return
-        # Ищем файл с похожим именем
         target = None
         for f in os.listdir(self.scans_dir):
             if act_name.lower() in f.lower():
@@ -507,19 +491,17 @@ class AssetManager:
             return
 
         item = selected[0]
-        # Определяем, группа это или отдельный актив
         children = self.tree.get_children(item)
         if children:
             messagebox.showinfo("Информация", "Выберите конкретный актив внутри группы")
             return
 
-        # Ищем актив по инвентарному номеру (колонка #2)
         values = self.tree.item(item, 'values')
         if not values or len(values) < 2:
             messagebox.showerror("Ошибка", "Не удалось определить актив")
             return
 
-        inventory = values[1]  # Инв. номер
+        inventory = values[1]   # Инв. номер
         asset_index = None
         for i, asset in enumerate(self.assets):
             if str(asset['inventory']) == str(inventory):
@@ -549,12 +531,10 @@ class AssetManager:
                                    f"Удалить выбранные активы ({len(selected)} шт.)?"):
             return
 
-        # Собираем инвентарные номера
         inv_numbers = []
         for item in selected:
             children = self.tree.get_children(item)
             if children:
-                # Если выбрана группа, удаляем все её активы
                 for child in children:
                     vals = self.tree.item(child, 'values')
                     if vals and len(vals) >= 2:
@@ -596,7 +576,6 @@ class AssetManager:
 
         self.filtered_assets = []
         for asset in self.assets:
-            # Проверяем все фильтры
             if self.name_filter_var.get() != "Все" and asset['name'] != self.name_filter_var.get():
                 continue
             if self.location_filter_var.get() != "Все" and asset['location'] != self.location_filter_var.get():
@@ -610,13 +589,11 @@ class AssetManager:
             if self.status_var.get() != "Все" and asset['status'] != self.status_var.get():
                 continue
 
-            # Поиск по всем полям
             if search_text:
                 searchable = ' '.join([
                     str(asset.get('name', '')),
                     str(asset.get('inventory', '')),
                     str(asset.get('location', '')),
-                    str(asset.get('responsible', '')),
                     str(asset.get('direction', '')),
                     str(asset.get('act', '')),
                     str(asset.get('issued_to', '')),
@@ -632,13 +609,11 @@ class AssetManager:
         self.update_stats()
 
     def update_table(self):
-        # Очищаем дерево
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         for group in self.grouped_assets:
             if len(group['assets']) == 1:
-                # Одиночный актив – просто строка
                 asset = group['assets'][0]
                 tags = self.get_tags(asset)
                 self.tree.insert('', 'end', values=(
@@ -653,25 +628,23 @@ class AssetManager:
                     asset['note']
                 ), tags=tags)
             else:
-                # Группа активов с одинаковым названием
                 group_tags = ('group',)
                 group_id = self.tree.insert('', 'end', values=(
                     group['name'],
-                    '',  # инвентарный номер пустой
+                    '',
                     f"{group['total_qty']}/{group['unit']}",
-                    '',  # направление
-                    '',  # расположение
-                    '',  # кому выдано
-                    '',  # статус
-                    '',  # акт
-                    ''   # примечание
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
                 ), tags=group_tags, open=False)
 
-                # Добавляем дочерние строки
                 for asset in group['assets']:
                     tags = self.get_tags(asset)
                     self.tree.insert(group_id, 'end', values=(
-                        '',  # наименование (пусто, так как у родителя)
+                        '',
                         asset['inventory'],
                         f"{asset['quantity']}/{asset['unit']}",
                         asset['direction'],
@@ -700,7 +673,7 @@ class AssetManager:
                  f"Списано: {written_off}"
         )
 
-    # ----- Экспорт и сохранение -----
+    # ----- Экспорт и автосохранение -----
     def export_to_excel(self):
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
@@ -713,4 +686,150 @@ class AssetManager:
                 shutil.copy2(self.excel_path, file_path)
                 messagebox.showinfo("Успех", f"Данные экспортированы в {file_path}")
             except Exception as e:
-                messagebox.showerror("Ошиб
+                messagebox.showerror("Ошибка", f"Не удалось экспортировать: {str(e)}")
+
+    def auto_save(self):
+        self.save_to_excel()
+        self.root.after(300000, self.auto_save)
+
+    def on_closing(self):
+        if messagebox.askyesno("Выход", "Сохранить изменения перед выходом?"):
+            if self.save_to_excel():
+                self.root.destroy()
+        else:
+            self.root.destroy()
+
+    def setup_shortcuts(self):
+        self.root.bind('<Control-n>', lambda e: self.add_asset())
+        self.root.bind('<Control-e>', lambda e: self.edit_asset())
+        self.root.bind('<Delete>', lambda e: self.delete_asset())
+        self.root.bind('<Control-f>', lambda e: self.focus_search())
+        self.root.bind('<Control-s>', lambda e: self.save_to_excel())
+
+    def focus_search(self):
+        self.search_entry.focus_set()
+
+
+class AssetDialog:
+    def __init__(self, parent, title, asset=None):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("550x650")
+        self.dialog.configure(bg='#f0f0f0')
+        self.dialog.resizable(False, False)
+
+        self.result = None
+        self.asset = asset or {}
+
+        self.setup_ui()
+
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        self.dialog.focus_force()
+        self.dialog.lift()
+
+    def setup_ui(self):
+        tk.Label(self.dialog, text="Информация об активе",
+                font=('Segoe UI', 16, 'bold'),
+                bg='#f0f0f0', fg='#333333').pack(pady=20)
+
+        form_frame = tk.Frame(self.dialog, bg='#f0f0f0')
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=30)
+
+        fields = [
+            ('Наименование:', 'name', True),
+            ('Инвентарный номер:', 'inventory', False),
+            ('Количество:', 'quantity', False),
+            ('Ед. измерения:', 'unit', False),
+            ('Направление:', 'direction', True),
+            ('Расположение:', 'location', True),
+            ('Кому выдано:', 'issued_to', False),
+            ('Статус:', 'status', False),
+            ('Акт/Накладная:', 'act', False),
+            ('Примечание:', 'note', False)
+        ]
+
+        self.entries = {}
+
+        for i, (label, key, required) in enumerate(fields):
+            tk.Label(form_frame, text=label,
+                    bg='#f0f0f0', font=('Segoe UI', 10)).grid(row=i, column=0, sticky='w', pady=5)
+
+            if key == 'status':
+                var = tk.StringVar(value=self.asset.get(key, 'Активен'))
+                entry = ttk.Combobox(form_frame, textvariable=var,
+                                    values=['Активен', 'В ремонте', 'Списан'],
+                                    state='readonly', width=25)
+            else:
+                default = self.asset.get(key, '')
+                if key == 'quantity':
+                    default = self.asset.get(key, 1)
+                elif key == 'unit':
+                    default = self.asset.get(key, 'шт.')
+                var = tk.StringVar(value=default)
+                entry = tk.Entry(form_frame, textvariable=var, width=27,
+                               font=('Segoe UI', 10))
+
+            entry.grid(row=i, column=1, sticky='w', pady=5, padx=(10, 0))
+            self.entries[key] = var
+
+            if required:
+                tk.Label(form_frame, text="*", fg='red',
+                        bg='#f0f0f0', font=('Segoe UI', 10, 'bold')).grid(row=i, column=2, sticky='w')
+
+        button_frame = tk.Frame(self.dialog, bg='#f0f0f0')
+        button_frame.pack(pady=20)
+
+        tk.Button(button_frame, text="💾 Сохранить",
+                 command=self.save,
+                 bg='#4CAF50', fg='white',
+                 font=('Segoe UI', 10, 'bold'),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+        tk.Button(button_frame, text="Отмена",
+                 command=self.dialog.destroy,
+                 bg='#9E9E9E', fg='white',
+                 font=('Segoe UI', 10),
+                 relief=tk.FLAT, cursor='hand2',
+                 padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+    def save(self):
+        required_fields = ['name', 'direction', 'location']
+        for field in required_fields:
+            if not self.entries[field].get().strip():
+                messagebox.showwarning("Внимание",
+                                      f"Поле '{field}' обязательно для заполнения")
+                return
+
+        try:
+            quantity = int(self.entries['quantity'].get().strip()) if self.entries['quantity'].get().strip() else 1
+        except ValueError:
+            messagebox.showerror("Ошибка", "Количество должно быть числом")
+            return
+
+        self.result = {
+            'name': self.entries['name'].get().strip(),
+            'inventory': self.entries['inventory'].get().strip(),
+            'quantity': quantity,
+            'unit': self.entries['unit'].get().strip() or 'шт.',
+            'direction': self.entries['direction'].get().strip(),
+            'location': self.entries['location'].get().strip(),
+            'issued_to': self.entries['issued_to'].get().strip(),
+            'status': self.entries['status'].get(),
+            'act': self.entries['act'].get().strip(),
+            'note': self.entries['note'].get().strip()
+        }
+
+        self.dialog.destroy()
+
+
+def main():
+    root = tk.Tk()
+    app = AssetManager(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_closing)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
