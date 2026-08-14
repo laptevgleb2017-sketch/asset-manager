@@ -37,6 +37,9 @@ class AssetManager:
         self.setup_shortcuts()
         self.auto_save()
 
+        # Первичное заполнение таблицы
+        self.filter_assets()
+
     # ---------- Цветовые схемы ----------
     def get_colors(self):
         if self.dark_mode:
@@ -239,8 +242,7 @@ class AssetManager:
                                    cursor='hand2', padx=10, pady=5)
         self.theme_btn.pack(side=tk.RIGHT)
 
-        self.update_table()
-        self.update_stats()
+        # НЕ вызываем update_table и update_stats здесь, они будут вызваны в filter_assets
 
     def apply_theme(self):
         c = self.get_colors()
@@ -530,6 +532,7 @@ class AssetManager:
             return
         children = self.tree.get_children(item)
         if children:
+            # Переключаем состояние
             current_state = self.tree.item(item, 'open')
             self.tree.item(item, open=not current_state)
             values = list(self.tree.item(item, 'values'))
@@ -541,7 +544,7 @@ class AssetManager:
                 self.tree.item(item, values=values)
             return "break"
         else:
-            self.edit_asset()
+            self.edit_asset_by_item(item)   # исправлено
             return "break"
 
     def open_scan(self, act_name):
@@ -582,6 +585,10 @@ class AssetManager:
             messagebox.showwarning("Внимание", "Выберите актив для редактирования")
             return
         item = selected[0]
+        self.edit_asset_by_item(item)
+
+    def edit_asset_by_item(self, item):
+        """Редактирование актива по конкретному item (не зависит от selection)."""
         children = self.tree.get_children(item)
         if children:
             messagebox.showinfo("Информация", "Выберите конкретный актив внутри группы")
@@ -590,7 +597,7 @@ class AssetManager:
         if not values or len(values) < 2:
             messagebox.showerror("Ошибка", "Не удалось определить актив")
             return
-        inventory = values[1]
+        inventory = values[1]   # Инв. номер
         asset_index = None
         for i, asset in enumerate(self.assets):
             if str(asset['inventory']) == str(inventory):
@@ -719,7 +726,7 @@ class AssetManager:
                     '',
                     '',
                     ''
-                ), tags=group_tags, open=True)   # <-- РАЗВЁРНУТО ПО УМОЛЧАНИЮ
+                ), tags=group_tags, open=True)  # раскрыто по умолчанию
                 self.tree.set(group_id, 'full_name', group['name'])
 
                 for asset in group['assets']:
