@@ -15,6 +15,7 @@ class AssetManager:
         self.root.configure(bg='#f0f0f0')
 
         self.dark_mode = False
+        self.tooltip = None  # для всплывающей подсказки
 
         desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
         self.data_dir = os.path.join(desktop, 'Учёт имущества')
@@ -36,8 +37,8 @@ class AssetManager:
         self.setup_shortcuts()
         self.auto_save()
 
+    # ---------- Цветовые схемы ----------
     def get_colors(self):
-        # ... без изменений ...
         if self.dark_mode:
             return {
                 'bg': '#2e2e2e', 'fg': '#ffffff', 'panel_bg': '#3c3c3c',
@@ -48,7 +49,8 @@ class AssetManager:
                 'heading_bg': '#1e1e1e', 'heading_fg': '#ffffff',
                 'tag_written_off': '#5c3a3a', 'tag_in_repair': '#5c4a2a',
                 'filter_bg': '#3c3c3c', 'filter_fg': '#ffffff',
-                'stats_bg': '#2e2e2e', 'stats_fg': '#cccccc'
+                'stats_bg': '#2e2e2e', 'stats_fg': '#cccccc',
+                'detail_bg': '#2e2e2e', 'detail_fg': '#ffffff'
             }
         else:
             return {
@@ -60,7 +62,8 @@ class AssetManager:
                 'heading_bg': '#2196F3', 'heading_fg': '#ffffff',
                 'tag_written_off': '#FFEBEE', 'tag_in_repair': '#FFF3E0',
                 'filter_bg': '#ffffff', 'filter_fg': '#333333',
-                'stats_bg': '#f0f0f0', 'stats_fg': '#666666'
+                'stats_bg': '#f0f0f0', 'stats_fg': '#666666',
+                'detail_bg': '#f0f0f0', 'detail_fg': '#333333'
             }
 
     def setup_styles(self):
@@ -71,6 +74,7 @@ class AssetManager:
         self.main_container = tk.Frame(self.root)
         self.main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
+        # Верхняя панель
         self.top_panel = tk.Frame(self.main_container)
         self.top_panel.pack(fill=tk.X, pady=(0, 20))
 
@@ -181,7 +185,7 @@ class AssetManager:
         self.table_frame.pack(fill=tk.BOTH, expand=True)
 
         columns = {
-            'name': ('Наименование', 200),
+            'name': ('Наименование', 300),      # <-- увеличена ширина
             'inventory': ('Инв. номер', 100),
             'qty_unit': ('Кол-во/ед. изм.', 100),
             'direction': ('Направление', 120),
@@ -211,7 +215,18 @@ class AssetManager:
 
         self.tree.bind('<Double-Button-1>', self.on_tree_double_click)
         self.tree.bind('<Button-1>', self.on_tree_click)
+        self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)   # для строки деталей
+        self.tree.bind('<Motion>', self.on_tree_motion)             # для tooltip
+        self.tree.bind('<Leave>', self.hide_tooltip)
 
+        # Строка деталей (под таблицей)
+        self.detail_frame = tk.Frame(self.main_container)
+        self.detail_frame.pack(fill=tk.X, pady=(5, 0))
+        self.detail_label = tk.Label(self.detail_frame, text="", anchor='w',
+                                     font=('Segoe UI', 10))
+        self.detail_label.pack(fill=tk.X)
+
+        # Нижняя панель со статистикой и кнопкой темы
         self.stats_panel = tk.Frame(self.main_container)
         self.stats_panel.pack(fill=tk.X, pady=(10, 0))
         self.stats_label = tk.Label(self.stats_panel, text="")
@@ -226,7 +241,6 @@ class AssetManager:
         self.update_stats()
 
     def apply_theme(self):
-        # ... без изменений ...
         c = self.get_colors()
         self.root.configure(bg=c['bg'])
         self.main_container.configure(bg=c['bg'])
@@ -240,6 +254,10 @@ class AssetManager:
         self.table_frame.configure(bg=c['filter_bg'])
         self.stats_panel.configure(bg=c['bg'])
         self.stats_label.configure(bg=c['bg'], fg=c['stats_fg'])
+
+        # Новые элементы
+        self.detail_frame.configure(bg=c['detail_bg'])
+        self.detail_label.configure(bg=c['detail_bg'], fg=c['detail_fg'])
 
         for btn in [self.add_btn, self.edit_btn, self.delete_btn, self.export_btn, self.theme_btn]:
             btn.configure(bg=c['button_bg'], fg=c['button_fg'],
@@ -284,6 +302,68 @@ class AssetManager:
         self.dark_mode = not self.dark_mode
         self.apply_theme()
 
+    # ---------- Tooltip ----------
+    def on_tree_motion(self, event):
+        region = self.tree.identify('region', event.x, event.y)
+        if region == 'cell':
+            col = self.tree.identify_column(event.x)
+            row = self.tree.identify_row(event.y)
+            if row and col:
+                values = self.tree.item(row, 'values')
+                col_index = int(col.replace('#', '')) - 1
+                if 0 <= col_index < len(values):
+                    text = str(values[col_index])
+                    if len(text) > 20:  # порог, можно настроить
+                        self.show_tooltip(event.x_root, event.y_root, text)
+                    else:
+                        self.hide_tooltip()
+                else:
+                    self.hide_tooltip()
+            else:
+                self.hide_tooltip()
+        else:
+            self.hide_tooltip()
+
+    def show_tooltip(self, x, y, text):
+        self.hide_tooltip()
+        self.tooltip = tk.Toplevel(self.root)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x+10}+{y+10}")
+        # Цвет tooltip всегда жёлтый, текст чёрный для читаемости
+        label = tk.Label(self.tooltip, text=text, background='#ffffe0',
+                         relief='solid', borderwidth=1, padx=5, pady=2,
+                         wraplength=400, justify='left', fg='#000000')
+        label.pack()
+
+    def hide_tooltip(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+    # ---------- Строка деталей ----------
+    def on_tree_select(self, event):
+        selected = self.tree.selection()
+        if not selected:
+            self.detail_label.config(text="")
+            return
+        item = selected[0]
+        values = self.tree.item(item, 'values')
+        children = self.tree.get_children(item)
+        if children:
+            # Группа
+            name = values[0] if values else ""
+            qty = values[2] if len(values) > 2 else ""
+            self.detail_label.config(text=f"Группа: {name} | Всего: {qty}")
+        else:
+            # Конкретный актив
+            if values:
+                name = values[0] if values[0] else "—"
+                inv = values[1] if values[1] else "—"
+                self.detail_label.config(text=f"Актив: {name} | Инв. номер: {inv}")
+            else:
+                self.detail_label.config(text="")
+
+    # ---------- Остальные методы (без изменений) ----------
     def get_unique_values(self, field):
         values = set()
         for asset in self.assets:
@@ -382,6 +462,20 @@ class AssetManager:
             ws.freeze_panes = 'A2'
             wb.save(self.excel_path)
             return True
+        except PermissionError:
+            # Если файл заблокирован, пробуем сохранить во временную папку
+            backup_path = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Temp', 'assets_backup.xlsx')
+            try:
+                wb.save(backup_path)
+                messagebox.showwarning(
+                    "Внимание",
+                    f"Файл {self.excel_path} занят другим процессом (возможно, открыт в Excel).\n"
+                    f"Данные сохранены во временный файл:\n{backup_path}\n\n"
+                    "Закройте Excel и повторите сохранение, либо скопируйте временный файл вручную."
+                )
+            except Exception as e2:
+                messagebox.showerror("Ошибка", f"Не удалось сохранить данные: {str(e2)}")
+            return False
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить данные: {str(e)}")
             return False
@@ -407,7 +501,7 @@ class AssetManager:
         region = self.tree.identify('region', event.x, event.y)
         if region == 'cell':
             col = self.tree.identify_column(event.x)
-            if col == '#8':
+            if col == '#8':  # Акт/Накладная
                 item = self.tree.identify_row(event.y)
                 if item:
                     values = self.tree.item(item, 'values')
@@ -421,10 +515,8 @@ class AssetManager:
             return
         children = self.tree.get_children(item)
         if children:
-            # Переключаем состояние
             current_state = self.tree.item(item, 'open')
             self.tree.item(item, open=not current_state)
-            # Обновляем стрелку
             values = list(self.tree.item(item, 'values'))
             if values:
                 if not current_state:
@@ -679,7 +771,6 @@ class AssetManager:
 
 
 class AssetDialog:
-    # ... класс диалога без изменений ...
     def __init__(self, parent, title, asset=None):
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
