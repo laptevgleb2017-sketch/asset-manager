@@ -274,7 +274,7 @@ class AssetManager:
                              background=c['tree_bg'],
                              fieldbackground=c['tree_bg'],
                              foreground=c['tree_fg'],
-                             rowheight=40,                     # увеличенная высота строк
+                             rowheight=40,
                              font=('Segoe UI', 10),
                              borderwidth=1,
                              relief='solid',
@@ -719,13 +719,13 @@ class AssetManager:
                     '',
                     '',
                     ''
-                ), tags=group_tags, open=False)
+                ), tags=group_tags, open=True)   # <-- РАЗВЁРНУТО ПО УМОЛЧАНИЮ
                 self.tree.set(group_id, 'full_name', group['name'])
 
                 for asset in group['assets']:
                     tags = self.get_tags(asset)
                     child_id = self.tree.insert(group_id, 'end', values=(
-                        '',  # пустое имя у дочерних
+                        '',
                         asset['inventory'],
                         f"{asset['quantity']}/{asset['unit']}",
                         asset['direction'],
