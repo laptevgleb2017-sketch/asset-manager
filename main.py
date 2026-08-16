@@ -645,19 +645,22 @@ class AssetManager:
                 pass
 
     def schedule_backup(self):
-        if os.path.exists(self.last_backup_file):
-            try:
-                with open(self.last_backup_file, 'r') as f:
-                    last = datetime.strptime(f.read().strip(), "%Y-%m-%d")
-            except:
-                last = None
-        else:
-            last = None
-        today = datetime.now().date()
-        if last is None or last < today:
-            self.backup_excel()
-            with open(self.last_backup_file, 'w') as f:
-                f.write(today.strftime("%Y-%m-%d"))
+    if os.path.exists(self.last_backup_file):
+        try:
+            with open(self.last_backup_file, 'r') as f:
+                last_str = f.read().strip()
+                # Преобразуем строку в datetime, затем берём только дату
+                last_date = datetime.strptime(last_str, "%Y-%m-%d").date()
+        except Exception:
+            last_date = None
+    else:
+        last_date = None
+
+    today = datetime.now().date()
+    if last_date is None or last_date < today:
+        self.backup_excel()
+        with open(self.last_backup_file, 'w') as f:
+            f.write(today.strftime("%Y-%m-%d"))
 
     # ================== ГРУППИРОВКА ==================
     def build_grouped_assets(self):
