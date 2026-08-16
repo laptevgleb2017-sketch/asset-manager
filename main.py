@@ -33,7 +33,7 @@ class AssetManager:
         self.full_names = {}
         self.sort_column = None
         self.sort_reverse = False
-        self.current_user = "user"   # без аутентификации, просто пометка
+        self.current_user = "user"   # без аутентификации
 
         # Пути
         desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
@@ -231,7 +231,6 @@ class AssetManager:
         self.inner_filter = tk.Frame(self.filter_panel)
         self.inner_filter.pack(fill=tk.X, padx=10, pady=10)
 
-        # Поиск
         self.search_label = tk.Label(self.inner_filter, text="🔍 Поиск:")
         self.search_label.pack(side=tk.LEFT, padx=(0, 5))
         self.search_var = tk.StringVar()
@@ -239,7 +238,6 @@ class AssetManager:
         self.search_entry = tk.Entry(self.inner_filter, textvariable=self.search_var, width=20)
         self.search_entry.pack(side=tk.LEFT, padx=(0, 10))
 
-        # Наименование
         self.name_label = tk.Label(self.inner_filter, text="Наименование:")
         self.name_label.pack(side=tk.LEFT, padx=(0, 5))
         self.name_filter_var = tk.StringVar()
@@ -249,7 +247,6 @@ class AssetManager:
         self.name_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.name_filter_var.trace('w', lambda *args: self.filter_assets())
 
-        # Расположение
         self.location_label = tk.Label(self.inner_filter, text="Расположение:")
         self.location_label.pack(side=tk.LEFT, padx=(0, 5))
         self.location_filter_var = tk.StringVar()
@@ -259,7 +256,6 @@ class AssetManager:
         self.location_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.location_filter_var.trace('w', lambda *args: self.filter_assets())
 
-        # Акт/Накладная
         self.act_label = tk.Label(self.inner_filter, text="Акт/Накладная:")
         self.act_label.pack(side=tk.LEFT, padx=(0, 5))
         self.act_filter_var = tk.StringVar()
@@ -269,7 +265,6 @@ class AssetManager:
         self.act_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.act_filter_var.trace('w', lambda *args: self.filter_assets())
 
-        # Кому выдано
         self.issued_to_label = tk.Label(self.inner_filter, text="Кому выдано:")
         self.issued_to_label.pack(side=tk.LEFT, padx=(0, 5))
         self.issued_to_filter_var = tk.StringVar()
@@ -279,7 +274,6 @@ class AssetManager:
         self.issued_to_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.issued_to_filter_var.trace('w', lambda *args: self.filter_assets())
 
-        # Направление
         self.direction_label = tk.Label(self.inner_filter, text="Направление:")
         self.direction_label.pack(side=tk.LEFT, padx=(0, 5))
         self.direction_var = tk.StringVar()
@@ -289,7 +283,6 @@ class AssetManager:
         self.direction_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.direction_var.trace('w', lambda *args: self.filter_assets())
 
-        # Статус
         self.status_label = tk.Label(self.inner_filter, text="Статус:")
         self.status_label.pack(side=tk.LEFT, padx=(0, 5))
         self.status_var = tk.StringVar()
@@ -645,22 +638,22 @@ class AssetManager:
                 pass
 
     def schedule_backup(self):
-    if os.path.exists(self.last_backup_file):
-        try:
-            with open(self.last_backup_file, 'r') as f:
-                last_str = f.read().strip()
-                # Преобразуем строку в datetime, затем берём только дату
-                last_date = datetime.strptime(last_str, "%Y-%m-%d").date()
-        except Exception:
+        if os.path.exists(self.last_backup_file):
+            try:
+                with open(self.last_backup_file, 'r') as f:
+                    last_str = f.read().strip()
+                    # Преобразуем строку в datetime, затем берём только дату
+                    last_date = datetime.strptime(last_str, "%Y-%m-%d").date()
+            except Exception:
+                last_date = None
+        else:
             last_date = None
-    else:
-        last_date = None
 
-    today = datetime.now().date()
-    if last_date is None or last_date < today:
-        self.backup_excel()
-        with open(self.last_backup_file, 'w') as f:
-            f.write(today.strftime("%Y-%m-%d"))
+        today = datetime.now().date()
+        if last_date is None or last_date < today:
+            self.backup_excel()
+            with open(self.last_backup_file, 'w') as f:
+                f.write(today.strftime("%Y-%m-%d"))
 
     # ================== ГРУППИРОВКА ==================
     def build_grouped_assets(self):
@@ -1324,7 +1317,7 @@ Ctrl+E — редактировать выбранный актив
 Ctrl+D — удалить выбранные активы
 Ctrl+F — фокус на поле поиска
 Ctrl+S — сохранить в Excel
-Ctrl+P — печать отчёта (если реализовано)
+Ctrl+P — печать отчёта
 
 Двойной клик по группе — раскрыть/свернуть
 Двойной клик по активу — редактировать
