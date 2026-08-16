@@ -52,6 +52,7 @@ class AssetManager:
                 'tree_selected_bg': '#4a90d9', 'tree_selected_fg': '#ffffff',
                 'heading_bg': '#1e1e1e', 'heading_fg': '#ffffff',
                 'tag_written_off': '#5c3a3a', 'tag_in_repair': '#5c4a2a',
+                'tag_lost': '#5c3a5c',
                 'filter_bg': '#3c3c3c', 'filter_fg': '#ffffff',
                 'stats_bg': '#2e2e2e', 'stats_fg': '#cccccc',
                 'detail_bg': '#2e2e2e', 'detail_fg': '#ffffff',
@@ -66,6 +67,7 @@ class AssetManager:
                 'tree_selected_bg': '#2196F3', 'tree_selected_fg': '#ffffff',
                 'heading_bg': '#2196F3', 'heading_fg': '#ffffff',
                 'tag_written_off': '#FFEBEE', 'tag_in_repair': '#FFF3E0',
+                'tag_lost': '#F3E5F5',
                 'filter_bg': '#ffffff', 'filter_fg': '#333333',
                 'stats_bg': '#f0f0f0', 'stats_fg': '#666666',
                 'detail_bg': '#f0f0f0', 'detail_fg': '#333333',
@@ -132,59 +134,65 @@ class AssetManager:
         self.search_entry = tk.Entry(self.inner_filter, textvariable=self.search_var, width=20)
         self.search_entry.pack(side=tk.LEFT, padx=(0, 10))
 
+        # Фильтр по наименованию
         self.name_label = tk.Label(self.inner_filter, text="Наименование:")
         self.name_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.name_filter_var = tk.StringVar(value="Все")
+        self.name_filter_var = tk.StringVar(value="")
         self.name_combo = ttk.Combobox(self.inner_filter, textvariable=self.name_filter_var,
-                                       values=["Все"] + self.get_unique_values('name'),
-                                       width=15, state='readonly')
+                                       values=[""] + self.get_unique_values('name'),
+                                       width=15, state='normal')
         self.name_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.name_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.name_filter_var.trace('w', lambda *args: self.filter_assets())
 
+        # Фильтр по расположению
         self.location_label = tk.Label(self.inner_filter, text="Расположение:")
         self.location_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.location_filter_var = tk.StringVar(value="Все")
+        self.location_filter_var = tk.StringVar(value="")
         self.location_combo = ttk.Combobox(self.inner_filter, textvariable=self.location_filter_var,
-                                           values=["Все"] + self.get_unique_values('location'),
-                                           width=15, state='readonly')
+                                           values=[""] + self.get_unique_values('location'),
+                                           width=15, state='normal')
         self.location_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.location_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.location_filter_var.trace('w', lambda *args: self.filter_assets())
 
+        # Фильтр по акту/накладной
         self.act_label = tk.Label(self.inner_filter, text="Акт/Накладная:")
         self.act_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.act_filter_var = tk.StringVar(value="Все")
+        self.act_filter_var = tk.StringVar(value="")
         self.act_combo = ttk.Combobox(self.inner_filter, textvariable=self.act_filter_var,
-                                      values=["Все"] + self.get_unique_values('act'),
-                                      width=15, state='readonly')
+                                      values=[""] + self.get_unique_values('act'),
+                                      width=15, state='normal')
         self.act_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.act_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.act_filter_var.trace('w', lambda *args: self.filter_assets())
 
-        self.inv_label = tk.Label(self.inner_filter, text="Инв. номер:")
-        self.inv_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.inv_filter_var = tk.StringVar(value="Все")
-        self.inv_combo = ttk.Combobox(self.inner_filter, textvariable=self.inv_filter_var,
-                                      values=["Все"] + self.get_unique_values('inventory'),
-                                      width=15, state='readonly')
-        self.inv_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.inv_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        # Фильтр по кому выдано (заменяет "Инв. номер")
+        self.issued_to_label = tk.Label(self.inner_filter, text="Кому выдано:")
+        self.issued_to_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.issued_to_filter_var = tk.StringVar(value="")
+        self.issued_to_combo = ttk.Combobox(self.inner_filter, textvariable=self.issued_to_filter_var,
+                                            values=[""] + self.get_unique_values('issued_to'),
+                                            width=15, state='normal')
+        self.issued_to_combo.pack(side=tk.LEFT, padx=(0, 10))
+        self.issued_to_filter_var.trace('w', lambda *args: self.filter_assets())
 
+        # Фильтр по направлению
         self.direction_label = tk.Label(self.inner_filter, text="Направление:")
         self.direction_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.direction_var = tk.StringVar(value="Все")
+        self.direction_var = tk.StringVar(value="")
         self.direction_combo = ttk.Combobox(self.inner_filter, textvariable=self.direction_var,
-                                            values=["Все"] + self.get_directions(),
-                                            width=15, state='readonly')
+                                            values=[""] + self.get_directions(),
+                                            width=15, state='normal')
         self.direction_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.direction_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.direction_var.trace('w', lambda *args: self.filter_assets())
 
+        # Фильтр по статусу
         self.status_label = tk.Label(self.inner_filter, text="Статус:")
         self.status_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.status_var = tk.StringVar(value="Все")
+        self.status_var = tk.StringVar(value="")
         self.status_combo = ttk.Combobox(self.inner_filter, textvariable=self.status_var,
-                                         values=["Все", "Активен", "В ремонте", "Списан"],
-                                         width=12, state='readonly')
+                                         values=["", "Активен", "В ремонте", "Списан", "Утеряно"],
+                                         width=12, state='normal')
         self.status_combo.pack(side=tk.LEFT)
-        self.status_combo.bind('<<ComboboxSelected>>', lambda e: self.filter_assets())
+        self.status_var.trace('w', lambda *args: self.filter_assets())
 
         # Таблица
         self.table_frame = tk.Frame(self.main_container, relief=tk.SOLID, bd=1)
@@ -267,7 +275,7 @@ class AssetManager:
                          activebackground=c['button_bg'])
 
         for label in [self.search_label, self.name_label, self.location_label,
-                      self.act_label, self.inv_label, self.direction_label, self.status_label]:
+                      self.act_label, self.issued_to_label, self.direction_label, self.status_label]:
             label.configure(bg=c['filter_bg'], fg=c['filter_fg'])
 
         self.search_entry.configure(bg=c['entry_bg'], fg=c['entry_fg'],
@@ -306,6 +314,7 @@ class AssetManager:
 
         self.tree.tag_configure('written_off', background=c['tag_written_off'])
         self.tree.tag_configure('in_repair', background=c['tag_in_repair'])
+        self.tree.tag_configure('lost', background=c['tag_lost'])
         self.tree.tag_configure('group', font=('Segoe UI', 10, 'bold'))
 
         self.theme_btn.config(text="☀️ Светлая тема" if self.dark_mode else "🌙 Тёмная тема")
@@ -395,11 +404,12 @@ class AssetManager:
         return self.get_unique_values('direction')
 
     def update_filter_values(self):
-        self.name_combo['values'] = ["Все"] + self.get_unique_values('name')
-        self.location_combo['values'] = ["Все"] + self.get_unique_values('location')
-        self.act_combo['values'] = ["Все"] + self.get_unique_values('act')
-        self.inv_combo['values'] = ["Все"] + self.get_unique_values('inventory')
-        self.direction_combo['values'] = ["Все"] + self.get_directions()
+        self.name_combo['values'] = [""] + self.get_unique_values('name')
+        self.location_combo['values'] = [""] + self.get_unique_values('location')
+        self.act_combo['values'] = [""] + self.get_unique_values('act')
+        self.issued_to_combo['values'] = [""] + self.get_unique_values('issued_to')
+        self.direction_combo['values'] = [""] + self.get_directions()
+        # статус остаётся статичным, не обновляем
 
     def create_excel_file(self):
         wb = openpyxl.Workbook()
@@ -661,20 +671,30 @@ class AssetManager:
 
     def filter_assets(self):
         search_text = self.search_var.get().lower()
+        name_filter = self.name_filter_var.get().strip().lower()
+        location_filter = self.location_filter_var.get().strip().lower()
+        act_filter = self.act_filter_var.get().strip().lower()
+        issued_to_filter = self.issued_to_filter_var.get().strip().lower()
+        direction_filter = self.direction_var.get().strip().lower()
+        status_filter = self.status_var.get().strip()
+
         self.filtered_assets = []
         for asset in self.assets:
-            if self.name_filter_var.get() != "Все" and asset['name'] != self.name_filter_var.get():
+            # Фильтры по выпадающим спискам (сравнение без учёта регистра)
+            if name_filter and asset['name'].lower() != name_filter:
                 continue
-            if self.location_filter_var.get() != "Все" and asset['location'] != self.location_filter_var.get():
+            if location_filter and asset['location'].lower() != location_filter:
                 continue
-            if self.act_filter_var.get() != "Все" and asset['act'] != self.act_filter_var.get():
+            if act_filter and asset['act'].lower() != act_filter:
                 continue
-            if self.inv_filter_var.get() != "Все" and str(asset['inventory']) != self.inv_filter_var.get():
+            if issued_to_filter and asset['issued_to'].lower() != issued_to_filter:
                 continue
-            if self.direction_var.get() != "Все" and asset['direction'] != self.direction_var.get():
+            if direction_filter and asset['direction'].lower() != direction_filter:
                 continue
-            if self.status_var.get() != "Все" and asset['status'] != self.status_var.get():
+            if status_filter and asset['status'] != status_filter:
                 continue
+
+            # Общий поиск по всем полям
             if search_text:
                 searchable = ' '.join([
                     str(asset.get('name', '')),
@@ -687,7 +707,9 @@ class AssetManager:
                 ]).lower()
                 if search_text not in searchable:
                     continue
+
             self.filtered_assets.append(asset)
+
         self.build_grouped_assets()
         self.update_table()
         self.update_stats()
@@ -747,10 +769,13 @@ class AssetManager:
 
     def get_tags(self, asset):
         tags = []
-        if asset['status'] == 'Списан':
+        status = asset.get('status', '')
+        if status == 'Списан':
             tags.append('written_off')
-        elif asset['status'] == 'В ремонте':
+        elif status == 'В ремонте':
             tags.append('in_repair')
+        elif status == 'Утеряно':
+            tags.append('lost')
         return tags
 
     def update_stats(self):
@@ -758,24 +783,67 @@ class AssetManager:
         active = len([a for a in self.assets if a['status'] == 'Активен'])
         in_repair = len([a for a in self.assets if a['status'] == 'В ремонте'])
         written_off = len([a for a in self.assets if a['status'] == 'Списан'])
+        lost = len([a for a in self.assets if a['status'] == 'Утеряно'])
         self.stats_label.config(
             text=f"Всего: {total} | Активных: {active} | В ремонте: {in_repair} | "
-                 f"Списано: {written_off}"
+                 f"Списано: {written_off} | Утеряно: {lost}"
         )
 
     def export_to_excel(self):
+        """Экспорт только отфильтрованных активов в отдельный файл."""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-            initialfile="assets_export.xlsx"
+            initialfile="filtered_export.xlsx"
         )
-        if file_path:
-            try:
-                import shutil
-                shutil.copy2(self.excel_path, file_path)
-                messagebox.showinfo("Успех", f"Данные экспортированы в {file_path}")
-            except Exception as e:
-                messagebox.showerror("Ошибка", f"Не удалось экспортировать: {str(e)}")
+        if not file_path:
+            return
+
+        try:
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Отфильтрованные активы"
+
+            headers = [
+                'Наименование', 'Инв. номер', 'Количество', 'Ед. измерения',
+                'Направление', 'Расположение', 'Кому выдано', 'Статус',
+                'Акт/Накладная', 'Примечание'
+            ]
+
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = Font(bold=True, color='FFFFFF', size=12)
+                cell.fill = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            for row_idx, asset in enumerate(self.filtered_assets, 2):
+                ws.cell(row=row_idx, column=1, value=asset['name'])
+                ws.cell(row=row_idx, column=2, value=asset['inventory'])
+                ws.cell(row=row_idx, column=3, value=asset['quantity'])
+                ws.cell(row=row_idx, column=4, value=asset['unit'])
+                ws.cell(row=row_idx, column=5, value=asset['direction'])
+                ws.cell(row=row_idx, column=6, value=asset['location'])
+                ws.cell(row=row_idx, column=7, value=asset['issued_to'])
+                ws.cell(row=row_idx, column=8, value=asset['status'])
+                ws.cell(row=row_idx, column=9, value=asset['act'])
+                ws.cell(row=row_idx, column=10, value=asset['note'])
+
+                if row_idx % 2 == 0:
+                    for col in range(1, 11):
+                        ws.cell(row=row_idx, column=col).fill = PatternFill(
+                            start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
+
+            widths = [25, 15, 10, 12, 20, 20, 20, 12, 20, 25]
+            for col, width in enumerate(widths, 1):
+                ws.column_dimensions[get_column_letter(col)].width = width
+
+            ws.auto_filter.ref = f"A1:J{len(self.filtered_assets) + 1}"
+            ws.freeze_panes = 'A2'
+
+            wb.save(file_path)
+            messagebox.showinfo("Успех", f"Отфильтрованные данные экспортированы в:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось экспортировать: {str(e)}")
 
     def auto_save(self):
         self.save_to_excel()
@@ -847,7 +915,7 @@ class AssetDialog:
             if key == 'status':
                 var = tk.StringVar(value=self.asset.get(key, 'Активен'))
                 entry = ttk.Combobox(form_frame, textvariable=var,
-                                    values=['Активен', 'В ремонте', 'Списан'],
+                                    values=['Активен', 'В ремонте', 'Списан', 'Утеряно'],
                                     state='readonly', width=25)
             else:
                 default = self.asset.get(key, '')
